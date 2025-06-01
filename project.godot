@@ -1,0 +1,23 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="AI Coding Assistant Plugin Demo"
+config/description="Demo project for the AI Coding Assistant plugin"
+config/features=PackedStringArray("4.4")
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/ai_coding_assistant/plugin.cfg")
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
