@@ -6,7 +6,7 @@
 
 A **professional-grade AI coding assistant** plugin for Godot 4 that transforms your development workflow with advanced features, responsive design, and enhanced markdown highlighting.
 
-![AI Assistant Demo](https://via.placeholder.com/800x400/2d2d2d/ffffff?text=AI+Assistant+Demo)
+![AI Assistant Demo](https://github.com/Godot4-Addons/ai_assistant_for_godot/blob/main/img/image.png)
 
 ## ✨ **Key Features**
 
