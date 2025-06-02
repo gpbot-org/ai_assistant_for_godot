@@ -205,6 +205,17 @@ func _create_chat_section(parent: Container):
 	chat_header.add_child(chat_clear_button)
 	chat_container.add_child(chat_header)
 
+	# Create scrollable container for chat history
+	var chat_scroll = ScrollContainer.new()
+	chat_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	chat_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	chat_scroll.set_custom_minimum_size(Vector2(0, 150))  # Default minimum height
+
+	# Enable scrolling
+	chat_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	chat_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	chat_scroll.follow_focus = true
+
 	# Chat history with enhanced markdown support and flexible sizing
 	chat_history = RichTextLabel.new()
 	chat_history.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -213,9 +224,6 @@ func _create_chat_section(parent: Container):
 	chat_history.scroll_following = true
 	chat_history.selection_enabled = true  # Enable text selection
 	chat_history.context_menu_enabled = true  # Enable built-in context menu
-
-	# Dynamic minimum size based on screen size (will be set by responsive design)
-	chat_history.set_custom_minimum_size(Vector2(0, 150))  # Default value
 
 	# Enhanced text properties for better readability
 	chat_history.fit_content = true
@@ -229,10 +237,23 @@ func _create_chat_section(parent: Container):
 	_create_chat_context_menu()
 	chat_history.gui_input.connect(_on_chat_gui_input)
 
-	chat_container.add_child(chat_history)
+	# Add chat history to scroll container
+	chat_scroll.add_child(chat_history)
+	chat_container.add_child(chat_scroll)
 
-	# Input section with better layout
+	# Sticky footer: Input section with better layout
+	var input_footer = VBoxContainer.new()
+	input_footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	input_footer.size_flags_vertical = Control.SIZE_SHRINK_END  # Stick to bottom
+
+	# Add a subtle separator above input
+	var input_separator = HSeparator.new()
+	input_separator.add_theme_constant_override("separation", 1)
+	input_footer.add_child(input_separator)
+
 	var input_hbox = HBoxContainer.new()
+	input_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
 	input_field = LineEdit.new()
 	input_field.placeholder_text = "Ask me anything about coding..."
 	input_field.editable = true
@@ -246,7 +267,9 @@ func _create_chat_section(parent: Container):
 
 	input_hbox.add_child(input_field)
 	input_hbox.add_child(send_button)
-	chat_container.add_child(input_hbox)
+	input_footer.add_child(input_hbox)
+
+	chat_container.add_child(input_footer)
 
 	parent.add_child(chat_container)
 
@@ -289,15 +312,23 @@ func _create_code_section(parent: Container):
 	code_header.add_child(code_save_button)
 	code_container.add_child(code_header)
 
+	# Create scrollable container for code output
+	var code_scroll = ScrollContainer.new()
+	code_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	code_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	code_scroll.set_custom_minimum_size(Vector2(0, 120))  # Default minimum height
+
+	# Enable scrolling for code
+	code_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	code_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	code_scroll.follow_focus = true
+
 	# Enhanced code output with flexible sizing and better editing capabilities
 	code_output = TextEdit.new()
 	code_output.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	code_output.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	code_output.placeholder_text = "Generated code will appear here...\nThis area is fully editable - you can modify code before applying it."
 	code_output.editable = true  # Allow editing
-
-	# Dynamic minimum size based on screen size (will be set by responsive design)
-	code_output.set_custom_minimum_size(Vector2(0, 120))  # Default value
 
 	# Enhanced code editing features
 	code_output.wrap_mode = TextEdit.LINE_WRAPPING_NONE  # No wrapping for code
@@ -316,7 +347,9 @@ func _create_code_section(parent: Container):
 	_create_code_context_menu()
 	code_output.gui_input.connect(_on_code_gui_input)
 
-	code_container.add_child(code_output)
+	# Add code output to scroll container
+	code_scroll.add_child(code_output)
+	code_container.add_child(code_scroll)
 
 	# Action buttons with better layout
 	var button_hbox = HBoxContainer.new()
@@ -473,13 +506,21 @@ func _apply_responsive_design():
 	var screen_height = viewport_size.y
 
 	# Adjust minimum sizes based on screen size
-	if chat_history:
+	if chat_container:
 		var min_chat_height = _calculate_dynamic_min_height("chat")
-		chat_history.set_custom_minimum_size(Vector2(0, min_chat_height))
+		# Find the scroll container and set its minimum size
+		for child in chat_container.get_children():
+			if child is ScrollContainer:
+				child.set_custom_minimum_size(Vector2(0, min_chat_height))
+				break
 
-	if code_output:
+	if code_container:
 		var min_code_height = _calculate_dynamic_min_height("code")
-		code_output.set_custom_minimum_size(Vector2(0, min_code_height))
+		# Find the scroll container and set its minimum size
+		for child in code_container.get_children():
+			if child is ScrollContainer:
+				child.set_custom_minimum_size(Vector2(0, min_code_height))
+				break
 
 	# Adjust dock minimum size based on screen
 	if screen_width < 400:
@@ -773,35 +814,39 @@ func _add_to_chat(sender: String, message: String, color: Color):
 	chat_history.append_text(sender_text + "\n" + formatted_message + "\n\n")
 
 func _format_message_with_markdown(message: String) -> String:
-	# Enhanced markdown formatting with advanced syntax highlighting
+	# Enhanced markdown formatting with error handling
 	var formatted = message
+
+	# Safety check for empty or null messages
+	if formatted.is_empty():
+		return formatted
 
 	# Format code blocks with language-specific syntax highlighting
 	var regex_code_block = RegEx.new()
-	regex_code_block.compile("```(\\w+)?\\n?([\\s\\S]*?)```")
-	var results = regex_code_block.search_all(formatted)
+	if regex_code_block.compile("```(\\w+)?\\n?([\\s\\S]*?)```") == OK:
+		var results = regex_code_block.search_all(formatted)
 
-	for result in results:
-		var language = result.get_string(1) if result.get_string(1) != "" else "gdscript"
-		var code_content = result.get_string(2)
-		var highlighted_code = _apply_syntax_highlighting(code_content, language)
-		var full_match = result.get_string(0)
+		for result in results:
+			var language = result.get_string(1) if result.get_string(1) != "" else "gdscript"
+			var code_content = result.get_string(2)
+			var highlighted_code = _apply_syntax_highlighting(code_content, language)
+			var full_match = result.get_string(0)
 
-		# Enhanced code block styling with modern design
-		var styled_code = "[bgcolor=#1e1e1e][color=#d4d4d4][font_size=11]" + \
-			"[table=1][cell][bgcolor=#0d1117][color=#569cd6] " + language.to_upper() + " [/color][/bgcolor][/cell][/table]" + \
-			"[table=1][cell][bgcolor=#1e1e1e]" + highlighted_code + "[/bgcolor][/cell][/table]" + \
-			"[/font_size][/color][/bgcolor]"
+			# Simplified code block styling to prevent display issues
+			var styled_code = "[bgcolor=#1e1e1e][color=#d4d4d4][font_size=12]" + \
+				"[color=#569cd6][b] " + language.to_upper() + " [/b][/color]\n" + \
+				highlighted_code + \
+				"[/font_size][/color][/bgcolor]"
 
-		formatted = formatted.replace(full_match, styled_code)
+			formatted = formatted.replace(full_match, styled_code)
 
-	# Format inline code with modern styling
+	# Format inline code with simplified styling
 	var regex_inline_code = RegEx.new()
-	regex_inline_code.compile("`([^`]+)`")
-	formatted = regex_inline_code.sub(formatted,
-		"[bgcolor=#2d2d30][color=#ce9178] $1 [/color][/bgcolor]", true)
+	if regex_inline_code.compile("`([^`]+)`") == OK:
+		formatted = regex_inline_code.sub(formatted,
+			"[color=#ce9178][code]$1[/code][/color]", true)
 
-	# Enhanced text formatting
+	# Enhanced text formatting with error handling
 	formatted = _format_text_styles(formatted)
 	formatted = _format_headers(formatted)
 	formatted = _format_lists(formatted)
@@ -943,18 +988,18 @@ func _format_text_styles(text: String) -> String:
 
 	# Bold text with enhanced styling
 	var regex_bold = RegEx.new()
-	regex_bold.compile("\\*\\*([^*]+)\\*\\*")
-	formatted = regex_bold.sub(formatted, "[b][color=#ffffff]$1[/color][/b]", true)
+	if regex_bold.compile("\\*\\*([^*]+)\\*\\*") == OK:
+		formatted = regex_bold.sub(formatted, "[b][color=#ffffff]$1[/color][/b]", true)
 
 	# Italic text
 	var regex_italic = RegEx.new()
-	regex_italic.compile("\\*([^*]+)\\*")
-	formatted = regex_italic.sub(formatted, "[i][color=#d7ba7d]$1[/color][/i]", true)
+	if regex_italic.compile("\\*([^*]+)\\*") == OK:
+		formatted = regex_italic.sub(formatted, "[i][color=#d7ba7d]$1[/color][/i]", true)
 
 	# Strikethrough
 	var regex_strike = RegEx.new()
-	regex_strike.compile("~~([^~]+)~~")
-	formatted = regex_strike.sub(formatted, "[s][color=#808080]$1[/color][/s]", true)
+	if regex_strike.compile("~~([^~]+)~~") == OK:
+		formatted = regex_strike.sub(formatted, "[s][color=#808080]$1[/color][/s]", true)
 
 	return formatted
 
@@ -968,21 +1013,21 @@ func _repeat_string(text: String, count: int) -> String:
 func _format_headers(text: String) -> String:
 	var formatted = text
 
-	# Headers with enhanced styling and spacing
+	# Headers with simplified styling to prevent display issues
 	var regex_h1 = RegEx.new()
-	regex_h1.compile("^# (.+)$")
-	formatted = regex_h1.sub(formatted,
-		"\n[font_size=24][b][color=#4fc1ff]$1[/color][/b][/font_size]\n[color=#4fc1ff]" + _repeat_string("─", 50) + "[/color]\n", true)
+	if regex_h1.compile("^# (.+)$") == OK:
+		formatted = regex_h1.sub(formatted,
+			"\n[font_size=18][b][color=#4fc1ff]$1[/color][/b][/font_size]\n", true)
 
 	var regex_h2 = RegEx.new()
-	regex_h2.compile("^## (.+)$")
-	formatted = regex_h2.sub(formatted,
-		"\n[font_size=20][b][color=#9cdcfe]$1[/color][/b][/font_size]\n[color=#9cdcfe]" + _repeat_string("─", 30) + "[/color]\n", true)
+	if regex_h2.compile("^## (.+)$") == OK:
+		formatted = regex_h2.sub(formatted,
+			"\n[font_size=16][b][color=#9cdcfe]$1[/color][/b][/font_size]\n", true)
 
 	var regex_h3 = RegEx.new()
-	regex_h3.compile("^### (.+)$")
-	formatted = regex_h3.sub(formatted,
-		"\n[font_size=16][b][color=#c586c0]$1[/color][/b][/font_size]\n", true)
+	if regex_h3.compile("^### (.+)$") == OK:
+		formatted = regex_h3.sub(formatted,
+			"\n[font_size=14][b][color=#c586c0]$1[/color][/b][/font_size]\n", true)
 
 	return formatted
 
@@ -991,24 +1036,24 @@ func _format_lists(text: String) -> String:
 
 	# Bullet points
 	var regex_bullet = RegEx.new()
-	regex_bullet.compile("^- (.+)$")
-	formatted = regex_bullet.sub(formatted, "[color=#569cd6]•[/color] $1", true)
+	if regex_bullet.compile("^- (.+)$") == OK:
+		formatted = regex_bullet.sub(formatted, "[color=#569cd6]•[/color] $1", true)
 
 	# Numbered lists
 	var regex_numbered = RegEx.new()
-	regex_numbered.compile("^(\\d+)\\. (.+)$")
-	formatted = regex_numbered.sub(formatted, "[color=#569cd6]$1.[/color] $2", true)
+	if regex_numbered.compile("^(\\d+)\\. (.+)$") == OK:
+		formatted = regex_numbered.sub(formatted, "[color=#569cd6]$1.[/color] $2", true)
 
 	return formatted
 
 func _format_quotes(text: String) -> String:
 	var formatted = text
 
-	# Block quotes
+	# Block quotes with simplified styling
 	var regex_quote = RegEx.new()
-	regex_quote.compile("^> (.+)$")
-	formatted = regex_quote.sub(formatted,
-		"[bgcolor=#2d2d30][color=#9cdcfe]▌[/color] [i][color=#d4d4d4]$1[/color][/i][/bgcolor]", true)
+	if regex_quote.compile("^> (.+)$") == OK:
+		formatted = regex_quote.sub(formatted,
+			"[color=#9cdcfe]> [/color][i][color=#d4d4d4]$1[/color][/i]", true)
 
 	return formatted
 
@@ -1017,13 +1062,13 @@ func _format_links(text: String) -> String:
 
 	# Markdown links [text](url)
 	var regex_link = RegEx.new()
-	regex_link.compile("\\[([^\\]]+)\\]\\(([^\\)]+)\\)")
-	formatted = regex_link.sub(formatted, "[color=#4fc1ff][u]$1[/u][/color]", true)
+	if regex_link.compile("\\[([^\\]]+)\\]\\(([^\\)]+)\\)") == OK:
+		formatted = regex_link.sub(formatted, "[color=#4fc1ff][u]$1[/u][/color]", true)
 
 	# URLs
 	var regex_url = RegEx.new()
-	regex_url.compile("https?://[^\\s]+")
-	formatted = regex_url.sub(formatted, "[color=#4fc1ff][u]$0[/u][/color]", true)
+	if regex_url.compile("https?://[^\\s]+") == OK:
+		formatted = regex_url.sub(formatted, "[color=#4fc1ff][u]$0[/u][/color]", true)
 
 	return formatted
 
