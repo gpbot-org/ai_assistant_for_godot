@@ -1,4 +1,4 @@
-# 🤖 AI Coding Assistant for Godot 4
+# 🤖 AI Coding Assistant for Godot 4 [v2.0.0] [Still on DEV MODE]
 
 [![Godot 4](https://img.shields.io/badge/Godot-4.x-blue.svg)](https://godotengine.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
