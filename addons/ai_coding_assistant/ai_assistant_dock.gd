@@ -6,6 +6,7 @@ var chat_history: RichTextLabel
 var input_field: LineEdit
 var send_button: Button
 var provider_option: OptionButton
+var model_option: OptionButton
 var api_key_field: LineEdit
 var code_output: TextEdit
 var apply_button: Button
@@ -150,9 +151,13 @@ func _create_settings_section(parent: Container):
 	provider_label.text = "Provider:"
 	provider_label.custom_minimum_size = Vector2(60, 0)
 	provider_option = OptionButton.new()
-	provider_option.add_item("Gemini (Free)")
-	provider_option.add_item("Hugging Face")
-	provider_option.add_item("Cohere")
+	provider_option.add_item("🤖 Gemini (Free)")
+	provider_option.add_item("🤗 Hugging Face (Free)")
+	provider_option.add_item("🔮 Cohere")
+	provider_option.add_item("🧠 OpenAI")
+	provider_option.add_item("🎭 Anthropic")
+	provider_option.add_item("⚡ Groq")
+	provider_option.add_item("🏠 Ollama (Local)")
 	provider_option.selected = 0
 	provider_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	provider_option.item_selected.connect(_on_provider_changed)
@@ -173,6 +178,21 @@ func _create_settings_section(parent: Container):
 	key_hbox.add_child(key_label)
 	key_hbox.add_child(api_key_field)
 	settings_content.add_child(key_hbox)
+
+	# Model selection dropdown
+	var model_hbox = HBoxContainer.new()
+	var model_label = Label.new()
+	model_label.text = "Model:"
+	model_label.custom_minimum_size = Vector2(60, 0)
+	model_option = OptionButton.new()
+	model_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	model_option.item_selected.connect(_on_model_changed)
+	model_hbox.add_child(model_label)
+	model_hbox.add_child(model_option)
+	settings_content.add_child(model_hbox)
+
+	# Initialize model dropdown
+	_update_model_dropdown()
 
 	settings_container.add_child(settings_content)
 	parent.add_child(settings_container)
@@ -336,7 +356,6 @@ func _create_code_section(parent: Container):
 	# Enhanced code editing features
 	code_output.wrap_mode = TextEdit.LINE_WRAPPING_NONE  # No wrapping for code
 	code_output.scroll_horizontal = true  # Correct property name for Godot 4.x
-	code_output.scroll_vertical_enabled = true
 	code_output.context_menu_enabled = true  # Enable built-in context menu
 	code_output.selecting_enabled = true
 	code_output.deselect_on_focus_loss_enabled = false
@@ -765,8 +784,56 @@ func _on_toggle_code_line_numbers():
 		code_line_numbers_button.tooltip_text = "Line numbers: " + ("ON" if code_line_numbers_enabled else "OFF")
 
 func _on_provider_changed(index: int):
-	var providers = ["gemini", "huggingface", "cohere"]
-	api_manager.set_provider(providers[index])
+	var providers = ["gemini", "huggingface", "cohere", "openai", "anthropic", "groq", "ollama"]
+	if index < providers.size():
+		api_manager.set_provider(providers[index])
+		_update_provider_info(providers[index])
+		_update_model_dropdown()
+
+func _update_provider_info(provider: String):
+	"""Update UI based on selected provider"""
+	var info_text = ""
+	match provider:
+		"gemini":
+			info_text = "Free tier: 60 req/min, 1500/day"
+		"huggingface":
+			info_text = "Free inference API available"
+		"cohere":
+			info_text = "Free tier: 20 req/min, 100/day"
+		"openai":
+			info_text = "Requires paid API key"
+		"anthropic":
+			info_text = "Requires paid API key"
+		"groq":
+			info_text = "Free tier available"
+		"ollama":
+			info_text = "Local models - no API key needed"
+
+	# Update API key field placeholder
+	if api_key_field:
+		if provider == "ollama":
+			api_key_field.placeholder_text = "No API key needed for local Ollama"
+			api_key_field.editable = false
+		else:
+			api_key_field.placeholder_text = "Enter your " + provider.capitalize() + " API key"
+			api_key_field.editable = true
+
+func _update_model_dropdown():
+	"""Update model dropdown based on current provider"""
+	if not model_option:
+		return
+
+	model_option.clear()
+	var models = api_manager.get_available_models()
+	for model in models:
+		model_option.add_item(model)
+
+	if models.size() > 0:
+		model_option.selected = 0
+
+func _on_model_changed(index: int):
+	"""Handle model selection change"""
+	api_manager.set_model_index(index)
 
 func _on_api_key_changed(new_text: String):
 	api_manager.set_api_key(new_text)
