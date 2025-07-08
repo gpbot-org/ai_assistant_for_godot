@@ -2,6 +2,7 @@
 extends Control
 
 var api_manager
+var editor_integration: EditorIntegration
 var chat_history: RichTextLabel
 var input_field: LineEdit
 var send_button: Button
@@ -14,6 +15,7 @@ var ollama_streaming_check: CheckBox
 var ollama_temperature_slider: HSlider
 var ollama_pull_button: Button
 var ollama_quick_actions: Array = []
+var editor_context_menu: PopupMenu
 var code_output: TextEdit
 var apply_button: Button
 var explain_button: Button
@@ -65,6 +67,12 @@ func _init():
 	add_child(api_manager)
 	api_manager.response_received.connect(_on_response_received)
 	api_manager.error_occurred.connect(_on_error_occurred)
+
+	# Initialize editor integration
+	editor_integration = preload("res://addons/ai_coding_assistant/editor_integration.gd").new()
+	editor_integration.code_inserted.connect(_on_code_inserted)
+	editor_integration.code_replaced.connect(_on_code_replaced)
+	editor_integration.selection_changed.connect(_on_selection_changed)
 
 	# Preload utility classes for better performance
 	# Note: These are used in template generation functions
@@ -471,6 +479,9 @@ func _create_quick_actions_section(parent: Container):
 
 	# Ollama-specific quick actions (initially hidden)
 	_create_ollama_quick_actions()
+
+	# Editor integration quick actions
+	_create_editor_quick_actions()
 
 	quick_actions_container.add_child(quick_content)
 	parent.add_child(quick_actions_container)
@@ -1044,6 +1055,408 @@ func _get_selected_text_from_editor() -> String:
 
 	return code_edit.get_selected_text()
 
+func _create_editor_quick_actions():
+	"""Create editor integration quick action buttons"""
+	var separator = HSeparator.new()
+	quick_content.add_child(separator)
+
+	var editor_label = Label.new()
+	editor_label.text = "📝 Editor Actions:"
+	quick_content.add_child(editor_label)
+
+	# Editor status indicator
+	var status_label = Label.new()
+	status_label.text = _get_editor_status()
+	status_label.add_theme_color_override("font_color", Color.GRAY)
+	quick_content.add_child(status_label)
+
+	# Update status periodically
+	var timer = Timer.new()
+	timer.wait_time = 2.0
+	timer.timeout.connect(func(): status_label.text = _get_editor_status())
+	timer.autostart = true
+	add_child(timer)
+
+	var read_file_btn = Button.new()
+	read_file_btn.text = "📖 Read Current File"
+	read_file_btn.pressed.connect(_on_read_current_file)
+	read_file_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quick_content.add_child(read_file_btn)
+
+	var analyze_selection_btn = Button.new()
+	analyze_selection_btn.text = "🔍 Analyze Selection"
+	analyze_selection_btn.pressed.connect(_on_analyze_selection)
+	analyze_selection_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quick_content.add_child(analyze_selection_btn)
+
+	var improve_function_btn = Button.new()
+	improve_function_btn.text = "⚡ Improve Function"
+	improve_function_btn.pressed.connect(_on_improve_current_function)
+	improve_function_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quick_content.add_child(improve_function_btn)
+
+	var add_comments_btn = Button.new()
+	add_comments_btn.text = "💬 Add Comments"
+	add_comments_btn.pressed.connect(_on_add_comments)
+	add_comments_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quick_content.add_child(add_comments_btn)
+
+	var refactor_btn = Button.new()
+	refactor_btn.text = "🔧 Refactor Code"
+	refactor_btn.pressed.connect(_on_refactor_code)
+	refactor_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quick_content.add_child(refactor_btn)
+
+	var insert_at_cursor_btn = Button.new()
+	insert_at_cursor_btn.text = "➕ Insert at Cursor"
+	insert_at_cursor_btn.pressed.connect(_on_insert_at_cursor)
+	insert_at_cursor_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quick_content.add_child(insert_at_cursor_btn)
+
+	# Editor context menu button
+	var editor_menu_btn = Button.new()
+	editor_menu_btn.text = "📋 Editor Menu"
+	editor_menu_btn.pressed.connect(_show_editor_context_menu)
+	editor_menu_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quick_content.add_child(editor_menu_btn)
+
+	# Create editor context menu
+	_create_editor_context_menu()
+
+func _on_read_current_file():
+	"""Read and analyze the current file"""
+	var file_content = editor_integration.get_all_text()
+	if file_content.is_empty():
+		_add_to_chat("System", "No file is currently open in the editor", Color.ORANGE)
+		return
+
+	var file_path = editor_integration.get_current_file_path()
+	var class_info = editor_integration.get_class_info()
+
+	var summary = "📖 **Current File Analysis**\n"
+	summary += "**File:** " + file_path + "\n"
+	summary += "**Lines:** " + str(class_info.get("line_count", 0)) + "\n"
+	summary += "**Class:** " + class_info.get("class_name", "N/A") + "\n"
+	summary += "**Extends:** " + class_info.get("extends", "N/A") + "\n"
+	summary += "**Functions:** " + str(class_info.get("functions", []).size()) + "\n"
+	summary += "**Variables:** " + str(class_info.get("variables", []).size()) + "\n\n"
+
+	_add_to_chat("System", summary, Color.CYAN)
+
+	# Ask AI to analyze the code
+	var prompt = "Analyze this GDScript code and provide insights about its structure, purpose, and potential improvements:\n\n```gdscript\n" + file_content + "\n```"
+	api_manager.send_chat_request(prompt)
+
+func _on_analyze_selection():
+	"""Analyze the currently selected code"""
+	var selected_text = editor_integration.get_selected_text()
+	if selected_text.is_empty():
+		_add_to_chat("System", "Please select some code to analyze", Color.ORANGE)
+		return
+
+	_add_to_chat("User", "Analyzing selected code: " + selected_text.substr(0, 100) + "...", Color.WHITE)
+
+	var prompt = "Analyze this GDScript code snippet. Explain what it does, identify any issues, and suggest improvements:\n\n```gdscript\n" + selected_text + "\n```"
+	api_manager.send_chat_request(prompt)
+
+func _on_improve_current_function():
+	"""Improve the function at the cursor position"""
+	var func_info = editor_integration.get_function_at_cursor()
+	if func_info.is_empty():
+		_add_to_chat("System", "No function found at cursor position", Color.ORANGE)
+		return
+
+	_add_to_chat("User", "Improving function: " + func_info["name"], Color.WHITE)
+
+	var prompt = "Improve this GDScript function. Make it more efficient, readable, and follow best practices. Return only the improved function code:\n\n```gdscript\n" + func_info["text"] + "\n```"
+
+	# Store function info for replacement
+	current_function_to_replace = func_info
+	api_manager.send_chat_request(prompt)
+
+func _on_add_comments():
+	"""Add comments to selected code or current function"""
+	var selected_text = editor_integration.get_selected_text()
+	var target_text = ""
+	var is_selection = false
+
+	if not selected_text.is_empty():
+		target_text = selected_text
+		is_selection = true
+	else:
+		var func_info = editor_integration.get_function_at_cursor()
+		if not func_info.is_empty():
+			target_text = func_info["text"]
+			current_function_to_replace = func_info
+		else:
+			_add_to_chat("System", "Please select code or place cursor in a function", Color.ORANGE)
+			return
+
+	_add_to_chat("User", "Adding comments to code...", Color.WHITE)
+
+	var prompt = "Add comprehensive comments to this GDScript code. Include function documentation, inline comments for complex logic, and parameter descriptions. Return only the commented code:\n\n```gdscript\n" + target_text + "\n```"
+
+	if is_selection:
+		replace_selection_with_response = true
+
+	api_manager.send_chat_request(prompt)
+
+func _on_refactor_code():
+	"""Refactor selected code or current function"""
+	var selected_text = editor_integration.get_selected_text()
+	var target_text = ""
+	var is_selection = false
+
+	if not selected_text.is_empty():
+		target_text = selected_text
+		is_selection = true
+	else:
+		var func_info = editor_integration.get_function_at_cursor()
+		if not func_info.is_empty():
+			target_text = func_info["text"]
+			current_function_to_replace = func_info
+		else:
+			_add_to_chat("System", "Please select code or place cursor in a function", Color.ORANGE)
+			return
+
+	_add_to_chat("User", "Refactoring code...", Color.WHITE)
+
+	var prompt = "Refactor this GDScript code to improve readability, performance, and maintainability. Follow GDScript best practices and conventions. Return only the refactored code:\n\n```gdscript\n" + target_text + "\n```"
+
+	if is_selection:
+		replace_selection_with_response = true
+
+	api_manager.send_chat_request(prompt)
+
+func _on_insert_at_cursor():
+	"""Insert AI-generated code at cursor position"""
+	var prompt = input_field.text.strip_edges()
+	if prompt.is_empty():
+		_add_to_chat("System", "Please enter a description of the code to generate", Color.ORANGE)
+		return
+
+	_add_to_chat("User", "Generating code: " + prompt, Color.WHITE)
+
+	var context = editor_integration.get_lines_around_cursor(3, 3)
+	var full_prompt = "Generate GDScript code for: " + prompt + "\n\nContext (cursor is at >>> line):\n" + context + "\n\nReturn only the code to insert:"
+
+	insert_at_cursor_mode = true
+	api_manager.send_chat_request(full_prompt)
+	input_field.clear()
+
+# State variables for editor operations
+var current_function_to_replace: Dictionary = {}
+var replace_selection_with_response: bool = false
+var insert_at_cursor_mode: bool = false
+
+func _on_code_inserted(text: String):
+	"""Handle code insertion event"""
+	_add_to_chat("System", "✅ Code inserted: " + text.substr(0, 50) + "...", Color.GREEN)
+
+func _on_code_replaced(old_text: String, new_text: String):
+	"""Handle code replacement event"""
+	_add_to_chat("System", "✅ Code replaced: " + old_text.substr(0, 30) + "... → " + new_text.substr(0, 30) + "...", Color.GREEN)
+
+func _on_selection_changed(selected_text: String):
+	"""Handle selection change event"""
+	if not selected_text.is_empty():
+		_add_to_chat("System", "📝 Selected: " + selected_text.substr(0, 50) + "...", Color.GRAY)
+
+func _create_editor_context_menu():
+	"""Create context menu for editor operations"""
+	editor_context_menu = PopupMenu.new()
+	add_child(editor_context_menu)
+
+	editor_context_menu.add_item("📖 Read Entire File", 0)
+	editor_context_menu.add_item("📝 Get File Info", 1)
+	editor_context_menu.add_separator()
+	editor_context_menu.add_item("🔍 Analyze Function at Cursor", 2)
+	editor_context_menu.add_item("📋 Copy Function to Chat", 3)
+	editor_context_menu.add_item("🔧 Refactor Function", 4)
+	editor_context_menu.add_separator()
+	editor_context_menu.add_item("💬 Add Documentation", 5)
+	editor_context_menu.add_item("🐛 Find Bugs", 6)
+	editor_context_menu.add_item("⚡ Optimize Performance", 7)
+	editor_context_menu.add_separator()
+	editor_context_menu.add_item("📊 Generate Unit Tests", 8)
+	editor_context_menu.add_item("🎯 Add Type Hints", 9)
+	editor_context_menu.add_item("🔄 Convert to Async", 10)
+
+	editor_context_menu.id_pressed.connect(_on_editor_context_menu_pressed)
+
+func _show_editor_context_menu():
+	"""Show the editor context menu"""
+	if not editor_context_menu:
+		return
+
+	var button_pos = get_global_mouse_position()
+	editor_context_menu.popup(Rect2i(button_pos, Vector2i(200, 300)))
+
+func _on_editor_context_menu_pressed(id: int):
+	"""Handle editor context menu selection"""
+	match id:
+		0: # Read Entire File
+			_on_read_current_file()
+		1: # Get File Info
+			_show_file_info()
+		2: # Analyze Function at Cursor
+			_analyze_function_at_cursor()
+		3: # Copy Function to Chat
+			_copy_function_to_chat()
+		4: # Refactor Function
+			_on_improve_current_function()
+		5: # Add Documentation
+			_add_documentation()
+		6: # Find Bugs
+			_find_bugs()
+		7: # Optimize Performance
+			_optimize_performance()
+		8: # Generate Unit Tests
+			_generate_unit_tests()
+		9: # Add Type Hints
+			_add_type_hints()
+		10: # Convert to Async
+			_convert_to_async()
+
+func _show_file_info():
+	"""Show detailed file information"""
+	var editor_info = editor_integration.get_editor_info()
+	var class_info = editor_info.get("class_info", {})
+
+	var info_text = "📊 **File Information**\n\n"
+	info_text += "**Path:** " + editor_info.get("file_path", "N/A") + "\n"
+	info_text += "**Lines:** " + str(editor_info.get("total_lines", 0)) + "\n"
+	info_text += "**Cursor:** Line " + str(editor_info.get("cursor_position", Vector2i()).x + 1) + "\n\n"
+
+	info_text += "**Class:** " + class_info.get("class_name", "N/A") + "\n"
+	info_text += "**Extends:** " + class_info.get("extends", "N/A") + "\n\n"
+
+	var functions = class_info.get("functions", [])
+	info_text += "**Functions (" + str(functions.size()) + "):**\n"
+	for func_name in functions:
+		info_text += "  • " + func_name + "\n"
+
+	var variables = class_info.get("variables", [])
+	info_text += "\n**Variables (" + str(variables.size()) + "):**\n"
+	for var_name in variables:
+		info_text += "  • " + var_name + "\n"
+
+	_add_to_chat("System", info_text, Color.CYAN)
+
+func _analyze_function_at_cursor():
+	"""Analyze the function at cursor position"""
+	var func_info = editor_integration.get_function_at_cursor()
+	if func_info.is_empty():
+		_add_to_chat("System", "No function found at cursor position", Color.ORANGE)
+		return
+
+	var prompt = "Analyze this GDScript function in detail. Explain its purpose, parameters, return value, complexity, and suggest any improvements:\n\n```gdscript\n" + func_info["text"] + "\n```"
+	api_manager.send_chat_request(prompt)
+
+func _copy_function_to_chat():
+	"""Copy function at cursor to chat for discussion"""
+	var func_info = editor_integration.get_function_at_cursor()
+	if func_info.is_empty():
+		_add_to_chat("System", "No function found at cursor position", Color.ORANGE)
+		return
+
+	_add_to_chat("User", "Function: " + func_info["name"] + "\n```gdscript\n" + func_info["text"] + "\n```", Color.WHITE)
+
+func _add_documentation():
+	"""Add comprehensive documentation to function"""
+	var func_info = editor_integration.get_function_at_cursor()
+	if func_info.is_empty():
+		_add_to_chat("System", "No function found at cursor position", Color.ORANGE)
+		return
+
+	current_function_to_replace = func_info
+	var prompt = "Add comprehensive GDScript documentation to this function. Include function description, parameter descriptions with types, return value description, and usage examples. Return only the documented function:\n\n```gdscript\n" + func_info["text"] + "\n```"
+	api_manager.send_chat_request(prompt)
+
+func _find_bugs():
+	"""Find potential bugs in selected code or current function"""
+	var target_code = editor_integration.get_selected_text()
+	if target_code.is_empty():
+		var func_info = editor_integration.get_function_at_cursor()
+		if not func_info.is_empty():
+			target_code = func_info["text"]
+		else:
+			target_code = editor_integration.get_all_text()
+
+	var prompt = "Analyze this GDScript code for potential bugs, errors, and issues. Look for:\n1. Logic errors\n2. Null reference issues\n3. Type mismatches\n4. Performance problems\n5. Memory leaks\n6. Threading issues\n\nCode:\n```gdscript\n" + target_code + "\n```"
+	api_manager.send_chat_request(prompt)
+
+func _optimize_performance():
+	"""Optimize performance of selected code or current function"""
+	var target_code = editor_integration.get_selected_text()
+	var is_selection = not target_code.is_empty()
+
+	if target_code.is_empty():
+		var func_info = editor_integration.get_function_at_cursor()
+		if not func_info.is_empty():
+			target_code = func_info["text"]
+			current_function_to_replace = func_info
+		else:
+			_add_to_chat("System", "Please select code or place cursor in a function", Color.ORANGE)
+			return
+
+	if is_selection:
+		replace_selection_with_response = true
+
+	var prompt = "Optimize this GDScript code for better performance. Focus on:\n1. Algorithm efficiency\n2. Memory usage\n3. Godot-specific optimizations\n4. Caching strategies\n5. Loop optimizations\n\nReturn only the optimized code:\n```gdscript\n" + target_code + "\n```"
+	api_manager.send_chat_request(prompt)
+
+func _generate_unit_tests():
+	"""Generate unit tests for current function"""
+	var func_info = editor_integration.get_function_at_cursor()
+	if func_info.is_empty():
+		_add_to_chat("System", "No function found at cursor position", Color.ORANGE)
+		return
+
+	var prompt = "Generate comprehensive unit tests for this GDScript function using Godot's testing framework. Include edge cases, error conditions, and normal usage:\n\n```gdscript\n" + func_info["text"] + "\n```"
+	api_manager.send_chat_request(prompt)
+
+func _add_type_hints():
+	"""Add type hints to function"""
+	var func_info = editor_integration.get_function_at_cursor()
+	if func_info.is_empty():
+		_add_to_chat("System", "No function found at cursor position", Color.ORANGE)
+		return
+
+	current_function_to_replace = func_info
+	var prompt = "Add proper type hints to this GDScript function. Include parameter types, return type, and variable types where appropriate. Return only the function with type hints:\n\n```gdscript\n" + func_info["text"] + "\n```"
+	api_manager.send_chat_request(prompt)
+
+func _convert_to_async():
+	"""Convert function to async if beneficial"""
+	var func_info = editor_integration.get_function_at_cursor()
+	if func_info.is_empty():
+		_add_to_chat("System", "No function found at cursor position", Color.ORANGE)
+		return
+
+	current_function_to_replace = func_info
+	var prompt = "Analyze this GDScript function and convert it to async if it would benefit from asynchronous execution. Add proper await calls and error handling. If async is not beneficial, explain why and return the original function:\n\n```gdscript\n" + func_info["text"] + "\n```"
+	api_manager.send_chat_request(prompt)
+
+func _get_editor_status() -> String:
+	"""Get current editor status for display"""
+	if not editor_integration:
+		return "❌ Editor integration not available"
+
+	var file_path = editor_integration.get_current_file_path()
+	if file_path.is_empty():
+		return "📄 No file open"
+
+	var file_name = file_path.get_file()
+	var cursor_pos = editor_integration.get_cursor_position()
+	var selected = editor_integration.get_selected_text()
+
+	var status = "📝 " + file_name + " (Line " + str(cursor_pos.x + 1) + ")"
+	if not selected.is_empty():
+		status += " | " + str(selected.length()) + " chars selected"
+
+	return status
+
 func _on_api_key_changed(new_text: String):
 	api_manager.set_api_key(new_text)
 
@@ -1139,12 +1552,87 @@ func _on_response_received(response: String):
 	send_button.disabled = false
 	_add_to_chat("AI", response, Color.GREEN)
 
+	# Handle different editor operation modes
+	if insert_at_cursor_mode:
+		_handle_insert_at_cursor_response(response)
+		insert_at_cursor_mode = false
+		return
+
+	if replace_selection_with_response:
+		_handle_replace_selection_response(response)
+		replace_selection_with_response = false
+		return
+
+	if not current_function_to_replace.is_empty():
+		_handle_function_replacement_response(response)
+		current_function_to_replace = {}
+		return
+
 	# If response looks like code, put it in the code output
 	var AIUtils = preload("res://addons/ai_coding_assistant/ai_utils.gd")
 	if AIUtils.is_code_response(response):
 		current_generated_code = AIUtils.extract_code_from_response(response)
 		code_output.text = current_generated_code
 		apply_button.disabled = false
+
+func _handle_insert_at_cursor_response(response: String):
+	"""Handle response for insert at cursor operation"""
+	var AIUtils = preload("res://addons/ai_coding_assistant/ai_utils.gd")
+	var code_to_insert = ""
+
+	if AIUtils.is_code_response(response):
+		code_to_insert = AIUtils.extract_code_from_response(response)
+	else:
+		# If no code blocks found, use the response as-is (might be a simple statement)
+		code_to_insert = response.strip_edges()
+
+	if not code_to_insert.is_empty():
+		if editor_integration.insert_text_at_cursor(code_to_insert):
+			_add_to_chat("System", "✅ Code inserted at cursor position", Color.GREEN)
+		else:
+			_add_to_chat("System", "❌ Failed to insert code - no active editor", Color.RED)
+	else:
+		_add_to_chat("System", "❌ No code found in response", Color.RED)
+
+func _handle_replace_selection_response(response: String):
+	"""Handle response for replace selection operation"""
+	var AIUtils = preload("res://addons/ai_coding_assistant/ai_utils.gd")
+	var code_to_replace = ""
+
+	if AIUtils.is_code_response(response):
+		code_to_replace = AIUtils.extract_code_from_response(response)
+	else:
+		code_to_replace = response.strip_edges()
+
+	if not code_to_replace.is_empty():
+		if editor_integration.replace_selected_text(code_to_replace):
+			_add_to_chat("System", "✅ Selected text replaced", Color.GREEN)
+		else:
+			_add_to_chat("System", "❌ Failed to replace selection", Color.RED)
+	else:
+		_add_to_chat("System", "❌ No code found in response", Color.RED)
+
+func _handle_function_replacement_response(response: String):
+	"""Handle response for function replacement operation"""
+	var AIUtils = preload("res://addons/ai_coding_assistant/ai_utils.gd")
+	var new_function_code = ""
+
+	if AIUtils.is_code_response(response):
+		new_function_code = AIUtils.extract_code_from_response(response)
+	else:
+		new_function_code = response.strip_edges()
+
+	if not new_function_code.is_empty():
+		if editor_integration.replace_function(current_function_to_replace["name"], new_function_code):
+			_add_to_chat("System", "✅ Function '" + current_function_to_replace["name"] + "' replaced", Color.GREEN)
+		else:
+			_add_to_chat("System", "❌ Failed to replace function", Color.RED)
+			# Fallback: put code in output for manual application
+			code_output.text = new_function_code
+			apply_button.disabled = false
+			_add_to_chat("System", "Code available in output panel for manual application", Color.YELLOW)
+	else:
+		_add_to_chat("System", "❌ No code found in response", Color.RED)
 
 func _on_error_occurred(error: String):
 	send_button.disabled = false
