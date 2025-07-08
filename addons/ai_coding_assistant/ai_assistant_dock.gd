@@ -59,9 +59,8 @@ func _init():
 	api_manager.response_received.connect(_on_response_received)
 	api_manager.error_occurred.connect(_on_error_occurred)
 
-	# Load utility classes
-	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
-	var AIUtils = load("res://addons/ai_coding_assistant/ai_utils.gd")
+	# Preload utility classes for better performance
+	# Note: These are used in template generation functions
 
 	_setup_ui()
 	_load_settings()
@@ -796,7 +795,7 @@ func _quick_generate(prompt: String):
 
 func _on_generate_class():
 	_add_to_chat("System", "Generating Player Movement Template", Color.YELLOW)
-	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var CodeTemplates = preload("res://addons/ai_coding_assistant/code_templates.gd")
 	var template = CodeTemplates.get_template("player_movement")
 	if template != "":
 		code_output.text = template
@@ -807,7 +806,7 @@ func _on_generate_class():
 
 func _on_generate_singleton():
 	_add_to_chat("System", "Generating Singleton Template", Color.YELLOW)
-	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var CodeTemplates = preload("res://addons/ai_coding_assistant/code_templates.gd")
 	var template = CodeTemplates.get_template("singleton")
 	if template != "":
 		code_output.text = template
@@ -818,7 +817,7 @@ func _on_generate_singleton():
 
 func _on_generate_ui():
 	_add_to_chat("System", "Generating UI Controller Template", Color.YELLOW)
-	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var CodeTemplates = preload("res://addons/ai_coding_assistant/code_templates.gd")
 	var template = CodeTemplates.get_template("ui_controller")
 	if template != "":
 		code_output.text = template
@@ -829,7 +828,7 @@ func _on_generate_ui():
 
 func _on_generate_save_system():
 	_add_to_chat("System", "Generating Save System Template", Color.YELLOW)
-	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var CodeTemplates = preload("res://addons/ai_coding_assistant/code_templates.gd")
 	var template = CodeTemplates.get_template("save_system")
 	if template != "":
 		code_output.text = template
@@ -840,7 +839,7 @@ func _on_generate_save_system():
 
 func _on_generate_audio_manager():
 	_add_to_chat("System", "Generating Audio Manager Template", Color.YELLOW)
-	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var CodeTemplates = preload("res://addons/ai_coding_assistant/code_templates.gd")
 	var template = CodeTemplates.get_template("audio_manager")
 	if template != "":
 		code_output.text = template
@@ -851,7 +850,7 @@ func _on_generate_audio_manager():
 
 func _on_generate_state_machine():
 	_add_to_chat("System", "Generating State Machine Template", Color.YELLOW)
-	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var CodeTemplates = preload("res://addons/ai_coding_assistant/code_templates.gd")
 	var template = CodeTemplates.get_template("state_machine")
 	if template != "":
 		code_output.text = template
@@ -865,8 +864,9 @@ func _on_response_received(response: String):
 	_add_to_chat("AI", response, Color.GREEN)
 
 	# If response looks like code, put it in the code output
-	if _is_code_response(response):
-		current_generated_code = _extract_code(response)
+	var AIUtils = preload("res://addons/ai_coding_assistant/ai_utils.gd")
+	if AIUtils.is_code_response(response):
+		current_generated_code = AIUtils.extract_code_from_response(response)
 		code_output.text = current_generated_code
 		apply_button.disabled = false
 
@@ -1148,26 +1148,7 @@ func _format_links(text: String) -> String:
 
 	return formatted
 
-func _is_code_response(response: String) -> bool:
-	var code_indicators = ["func ", "class ", "extends ", "var ", "const ", "if ", "for ", "while ", "@tool", "signal "]
-	for indicator in code_indicators:
-		if indicator in response:
-			return true
-	return false
-
-func _extract_code(response: String) -> String:
-	# Try to extract code from markdown code blocks
-	var regex = RegEx.new()
-	regex.compile("```(?:gdscript|gd)?\\n?([\\s\\S]*?)```")
-	var result = regex.search(response)
-	if result:
-		return result.get_string(1).strip_edges()
-
-	# If no code blocks, return the whole response if it looks like code
-	if _is_code_response(response):
-		return response.strip_edges()
-
-	return ""
+# Code response detection and extraction moved to AIUtils class
 
 func _on_apply_code():
 	if current_generated_code.is_empty():
