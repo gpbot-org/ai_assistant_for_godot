@@ -1024,7 +1024,7 @@ func _on_ollama_improve_code():
 
 func _on_ollama_generate_code():
 	"""Generate code using Ollama with specialized models"""
-	var prompt = user_input.text.strip_edges()
+	var prompt = input_field.text.strip_edges()
 	if prompt.is_empty():
 		_add_to_chat("System", "Please enter a code generation request", Color.ORANGE)
 		return
@@ -1033,7 +1033,7 @@ func _on_ollama_generate_code():
 	if ollama_handler:
 		_add_to_chat("User", "Generate: " + prompt, Color.WHITE)
 		ollama_handler.generate_code(prompt, "gdscript")
-		user_input.clear()
+		input_field.clear()
 
 func _get_selected_text_from_editor() -> String:
 	"""Get selected text from the current script editor"""
