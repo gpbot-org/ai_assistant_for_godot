@@ -31,7 +31,7 @@ func _setup_ui():
 
 	# Split container for side-by-side view
 	var hsplit = HSplitContainer.new()
-	hsplit.set_custom_minimum_size(Vector2(0, 400))
+	hsplit.custom_minimum_size = Vector2(0, 400)
 	vbox.add_child(hsplit)
 
 	# Original code panel
@@ -67,7 +67,7 @@ func _setup_ui():
 	vbox.add_child(diff_label)
 
 	diff_display = RichTextLabel.new()
-	diff_display.set_custom_minimum_size(Vector2(0, 150))
+	diff_display.custom_minimum_size = Vector2(0, 150)
 	diff_display.bbcode_enabled = true
 	vbox.add_child(diff_display)
 

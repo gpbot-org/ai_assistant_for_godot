@@ -39,7 +39,7 @@ func _setup_ui():
 	var provider_hbox = HBoxContainer.new()
 	var provider_label = Label.new()
 	provider_label.text = "Provider:"
-	provider_label.set_custom_minimum_size(Vector2(100, 0))
+	provider_label.custom_minimum_size = Vector2(100, 0)
 	provider_option = OptionButton.new()
 	provider_option.add_item("Google Gemini")
 	provider_option.add_item("Hugging Face")
@@ -52,7 +52,7 @@ func _setup_ui():
 	var key_hbox = HBoxContainer.new()
 	var key_label = Label.new()
 	key_label.text = "API Key:"
-	key_label.set_custom_minimum_size(Vector2(100, 0))
+	key_label.custom_minimum_size = Vector2(100, 0)
 	api_key_input = LineEdit.new()
 	api_key_input.placeholder_text = "Enter your API key"
 	api_key_input.secret = true
@@ -74,7 +74,7 @@ func _setup_ui():
 	var temp_hbox = HBoxContainer.new()
 	var temp_label = Label.new()
 	temp_label.text = "Temperature:"
-	temp_label.set_custom_minimum_size(Vector2(100, 0))
+	temp_label.custom_minimum_size = Vector2(100, 0)
 	temperature_slider = HSlider.new()
 	temperature_slider.min_value = 0.0
 	temperature_slider.max_value = 1.0
@@ -92,7 +92,7 @@ func _setup_ui():
 	var tokens_hbox = HBoxContainer.new()
 	var tokens_label = Label.new()
 	tokens_label.text = "Max Tokens:"
-	tokens_label.set_custom_minimum_size(Vector2(100, 0))
+	tokens_label.custom_minimum_size = Vector2(100, 0)
 	max_tokens_input = SpinBox.new()
 	max_tokens_input.min_value = 100
 	max_tokens_input.max_value = 4096

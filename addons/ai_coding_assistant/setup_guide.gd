@@ -14,7 +14,7 @@ var setup_steps: Array = []
 
 func _init():
 	title = "AI Coding Assistant - Setup Guide"
-	set_custom_minimum_size(Vector2(600, 400))
+	min_size = Vector2(600, 400)
 	_setup_steps()
 	_setup_ui()
 	_update_step()
@@ -139,7 +139,7 @@ func _setup_ui():
 	instruction_text = RichTextLabel.new()
 	instruction_text.bbcode_enabled = true
 	instruction_text.fit_content = true
-	instruction_text.set_custom_minimum_size(Vector2(0, 250))
+	instruction_text.custom_minimum_size = Vector2(0, 250)
 	vbox.add_child(instruction_text)
 
 	# Navigation buttons
