@@ -54,9 +54,9 @@ func _init():
 	# Connect to viewport size changes for responsive design (deferred)
 	call_deferred("_connect_viewport_signals")
 
-	var AIApiManager = load("res://addons/ai_coding_assistant/ai_api_manager.gd")
-	api_manager = AIApiManager.new()
-	add_child(api_manager.http_request)
+	# Create and add API manager as a child node
+	api_manager = preload("res://addons/ai_coding_assistant/ai_api_manager.gd").new()
+	add_child(api_manager)
 	api_manager.response_received.connect(_on_response_received)
 	api_manager.error_occurred.connect(_on_error_occurred)
 

@@ -1,5 +1,6 @@
 @tool
-extends RefCounted
+extends Node
+class_name AIApiManager
 
 # API Configuration
 var api_key: String = ""
@@ -49,10 +50,12 @@ func _init():
 	api_provider = "gemini"
 	api_key = ""
 
+func _ready():
+	"""Initialize HTTPRequest when node is ready"""
 	http_request = HTTPRequest.new()
+	add_child(http_request)
 	http_request.request_completed.connect(_on_request_completed)
-
-	print("API Manager initialized with models: ", gemini_models)
+	print("API Manager ready with models: ", gemini_models)
 
 func _init_provider_models():
 	"""Initialize model configurations for all providers"""
@@ -145,8 +148,9 @@ func get_provider_list() -> Array:
 	return base_urls.keys()
 
 func send_chat_request(message: String, context: String = ""):
-	if api_key.is_empty():
-		error_occurred.emit("API key not set")
+	# Ollama doesn't require an API key
+	if api_key.is_empty() and api_provider != "ollama":
+		error_occurred.emit("API key not set for " + api_provider)
 		return
 
 	match api_provider:
