@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI Coding Assistant Logo">
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated logo with text phrases">
   <!-- Outer circle -->
   <circle cx="64" cy="64" r="62" fill="#478CBF" stroke="#2E5C8A" stroke-width="4"/>
   
@@ -21,8 +21,19 @@
     <circle cx="-8" cy="-28" r="3" fill="#FFA500"/>
   </g>
 
-  <!-- Static Text -->
-  <text x="64" y="116" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#FFFFFF" text-anchor="middle" font-weight="600">
-    AI Assistant
+  <!-- Animated Text -->
+  <text x="64" y="116" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#FFFFFF" text-anchor="middle" font-weight="600" opacity="1">
+    <tspan id="text1">Grandpa EJ</tspan>
+    <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.33;0.34;1" dur="6s" repeatCount="indefinite" begin="0s"/>
+  </text>
+
+  <text x="64" y="116" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#FFFFFF" text-anchor="middle" font-weight="600" opacity="0">
+    <tspan id="text2">Godot 4</tspan>
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.33;0.34;0.66;1" dur="6s" repeatCount="indefinite" begin="0s"/>
+  </text>
+
+  <text x="64" y="116" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#FFFFFF" text-anchor="middle" font-weight="600" opacity="0">
+    <tspan id="text3">Ai Assistance</tspan>
+    <animate attributeName="opacity" values="0;0;0;0;1;1;0" keyTimes="0;0.66;0.67;0.99;1" dur="6s" repeatCount="indefinite" begin="0s"/>
   </text>
 </svg>

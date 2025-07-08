@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="logo_static.svg" alt="AI Coding Assistant Logo" width="128" height="128">
+  <img src="img/logo_static.svg" alt="AI Coding Assistant Logo" width="128" height="128">
 
   # 🤖 AI Coding Assistant for Godot 4 [v2.0.0] [Still on DEV MODE]
 
@@ -11,10 +11,10 @@
 A **professional-grade AI coding assistant** plugin for Godot 4 that transforms your development workflow with advanced features, responsive design, and enhanced markdown highlighting.
 
 <div align="center">
-  <img src="banner.svg" alt="AI Coding Assistant Banner" width="100%">
+  <img src="img/banner.svg" alt="AI Coding Assistant Banner" width="100%">
 </div>
 
-![AI Assistant Demo](https://github.com/Godot4-Addons/ai_assistant_for_godot/blob/main/img/image.png)
+<img src="img/image.png" alt="AI Coding Assistant in action" width="100%">
 
 ## ✨ **Key Features**
 

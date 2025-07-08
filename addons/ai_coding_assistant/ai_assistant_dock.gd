@@ -6,6 +6,7 @@ var chat_history: RichTextLabel
 var input_field: LineEdit
 var send_button: Button
 var provider_option: OptionButton
+var model_option: OptionButton
 var api_key_field: LineEdit
 var code_output: TextEdit
 var apply_button: Button
@@ -59,9 +60,8 @@ func _init():
 	api_manager.response_received.connect(_on_response_received)
 	api_manager.error_occurred.connect(_on_error_occurred)
 
-	# Load utility classes
-	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
-	var AIUtils = load("res://addons/ai_coding_assistant/ai_utils.gd")
+	# Preload utility classes for better performance
+	# Note: These are used in template generation functions
 
 	_setup_ui()
 	_load_settings()
@@ -151,9 +151,13 @@ func _create_settings_section(parent: Container):
 	provider_label.text = "Provider:"
 	provider_label.custom_minimum_size = Vector2(60, 0)
 	provider_option = OptionButton.new()
-	provider_option.add_item("Gemini (Free)")
-	provider_option.add_item("Hugging Face")
-	provider_option.add_item("Cohere")
+	provider_option.add_item("🤖 Gemini (Free)")
+	provider_option.add_item("🤗 Hugging Face (Free)")
+	provider_option.add_item("🔮 Cohere")
+	provider_option.add_item("🧠 OpenAI")
+	provider_option.add_item("🎭 Anthropic")
+	provider_option.add_item("⚡ Groq")
+	provider_option.add_item("🏠 Ollama (Local)")
 	provider_option.selected = 0
 	provider_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	provider_option.item_selected.connect(_on_provider_changed)
@@ -174,6 +178,21 @@ func _create_settings_section(parent: Container):
 	key_hbox.add_child(key_label)
 	key_hbox.add_child(api_key_field)
 	settings_content.add_child(key_hbox)
+
+	# Model selection dropdown
+	var model_hbox = HBoxContainer.new()
+	var model_label = Label.new()
+	model_label.text = "Model:"
+	model_label.custom_minimum_size = Vector2(60, 0)
+	model_option = OptionButton.new()
+	model_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	model_option.item_selected.connect(_on_model_changed)
+	model_hbox.add_child(model_label)
+	model_hbox.add_child(model_option)
+	settings_content.add_child(model_hbox)
+
+	# Initialize model dropdown
+	_update_model_dropdown()
 
 	settings_container.add_child(settings_content)
 	parent.add_child(settings_container)
@@ -337,7 +356,6 @@ func _create_code_section(parent: Container):
 	# Enhanced code editing features
 	code_output.wrap_mode = TextEdit.LINE_WRAPPING_NONE  # No wrapping for code
 	code_output.scroll_horizontal = true  # Correct property name for Godot 4.x
-	code_output.scroll_vertical_enabled = true
 	code_output.context_menu_enabled = true  # Enable built-in context menu
 	code_output.selecting_enabled = true
 	code_output.deselect_on_focus_loss_enabled = false
@@ -766,8 +784,56 @@ func _on_toggle_code_line_numbers():
 		code_line_numbers_button.tooltip_text = "Line numbers: " + ("ON" if code_line_numbers_enabled else "OFF")
 
 func _on_provider_changed(index: int):
-	var providers = ["gemini", "huggingface", "cohere"]
-	api_manager.set_provider(providers[index])
+	var providers = ["gemini", "huggingface", "cohere", "openai", "anthropic", "groq", "ollama"]
+	if index < providers.size():
+		api_manager.set_provider(providers[index])
+		_update_provider_info(providers[index])
+		_update_model_dropdown()
+
+func _update_provider_info(provider: String):
+	"""Update UI based on selected provider"""
+	var info_text = ""
+	match provider:
+		"gemini":
+			info_text = "Free tier: 60 req/min, 1500/day"
+		"huggingface":
+			info_text = "Free inference API available"
+		"cohere":
+			info_text = "Free tier: 20 req/min, 100/day"
+		"openai":
+			info_text = "Requires paid API key"
+		"anthropic":
+			info_text = "Requires paid API key"
+		"groq":
+			info_text = "Free tier available"
+		"ollama":
+			info_text = "Local models - no API key needed"
+
+	# Update API key field placeholder
+	if api_key_field:
+		if provider == "ollama":
+			api_key_field.placeholder_text = "No API key needed for local Ollama"
+			api_key_field.editable = false
+		else:
+			api_key_field.placeholder_text = "Enter your " + provider.capitalize() + " API key"
+			api_key_field.editable = true
+
+func _update_model_dropdown():
+	"""Update model dropdown based on current provider"""
+	if not model_option:
+		return
+
+	model_option.clear()
+	var models = api_manager.get_available_models()
+	for model in models:
+		model_option.add_item(model)
+
+	if models.size() > 0:
+		model_option.selected = 0
+
+func _on_model_changed(index: int):
+	"""Handle model selection change"""
+	api_manager.set_model_index(index)
 
 func _on_api_key_changed(new_text: String):
 	api_manager.set_api_key(new_text)
@@ -796,7 +862,7 @@ func _quick_generate(prompt: String):
 
 func _on_generate_class():
 	_add_to_chat("System", "Generating Player Movement Template", Color.YELLOW)
-	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var CodeTemplates = preload("res://addons/ai_coding_assistant/code_templates.gd")
 	var template = CodeTemplates.get_template("player_movement")
 	if template != "":
 		code_output.text = template
@@ -807,7 +873,7 @@ func _on_generate_class():
 
 func _on_generate_singleton():
 	_add_to_chat("System", "Generating Singleton Template", Color.YELLOW)
-	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var CodeTemplates = preload("res://addons/ai_coding_assistant/code_templates.gd")
 	var template = CodeTemplates.get_template("singleton")
 	if template != "":
 		code_output.text = template
@@ -818,7 +884,7 @@ func _on_generate_singleton():
 
 func _on_generate_ui():
 	_add_to_chat("System", "Generating UI Controller Template", Color.YELLOW)
-	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var CodeTemplates = preload("res://addons/ai_coding_assistant/code_templates.gd")
 	var template = CodeTemplates.get_template("ui_controller")
 	if template != "":
 		code_output.text = template
@@ -829,7 +895,7 @@ func _on_generate_ui():
 
 func _on_generate_save_system():
 	_add_to_chat("System", "Generating Save System Template", Color.YELLOW)
-	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var CodeTemplates = preload("res://addons/ai_coding_assistant/code_templates.gd")
 	var template = CodeTemplates.get_template("save_system")
 	if template != "":
 		code_output.text = template
@@ -840,7 +906,7 @@ func _on_generate_save_system():
 
 func _on_generate_audio_manager():
 	_add_to_chat("System", "Generating Audio Manager Template", Color.YELLOW)
-	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var CodeTemplates = preload("res://addons/ai_coding_assistant/code_templates.gd")
 	var template = CodeTemplates.get_template("audio_manager")
 	if template != "":
 		code_output.text = template
@@ -851,7 +917,7 @@ func _on_generate_audio_manager():
 
 func _on_generate_state_machine():
 	_add_to_chat("System", "Generating State Machine Template", Color.YELLOW)
-	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var CodeTemplates = preload("res://addons/ai_coding_assistant/code_templates.gd")
 	var template = CodeTemplates.get_template("state_machine")
 	if template != "":
 		code_output.text = template
@@ -865,8 +931,9 @@ func _on_response_received(response: String):
 	_add_to_chat("AI", response, Color.GREEN)
 
 	# If response looks like code, put it in the code output
-	if _is_code_response(response):
-		current_generated_code = _extract_code(response)
+	var AIUtils = preload("res://addons/ai_coding_assistant/ai_utils.gd")
+	if AIUtils.is_code_response(response):
+		current_generated_code = AIUtils.extract_code_from_response(response)
 		code_output.text = current_generated_code
 		apply_button.disabled = false
 
@@ -1148,26 +1215,7 @@ func _format_links(text: String) -> String:
 
 	return formatted
 
-func _is_code_response(response: String) -> bool:
-	var code_indicators = ["func ", "class ", "extends ", "var ", "const ", "if ", "for ", "while ", "@tool", "signal "]
-	for indicator in code_indicators:
-		if indicator in response:
-			return true
-	return false
-
-func _extract_code(response: String) -> String:
-	# Try to extract code from markdown code blocks
-	var regex = RegEx.new()
-	regex.compile("```(?:gdscript|gd)?\\n?([\\s\\S]*?)```")
-	var result = regex.search(response)
-	if result:
-		return result.get_string(1).strip_edges()
-
-	# If no code blocks, return the whole response if it looks like code
-	if _is_code_response(response):
-		return response.strip_edges()
-
-	return ""
+# Code response detection and extraction moved to AIUtils class
 
 func _on_apply_code():
 	if current_generated_code.is_empty():

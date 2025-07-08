@@ -5,14 +5,13 @@ This document outlines the proper usage of the AI Coding Assistant logo and bran
 ## Logo Files
 
 ### Main Logo Files
-- `logo.svg` - Animated version with cycling text (Grandpa EJ, Godot 4, AI Assistance)
-- `logo_static.svg` - Static version with "AI Assistant" text
+- `img/logo.svg` - Animated version with cycling text (Grandpa EJ, Godot 4, AI Assistance)
+- `img/logo_static.svg` - Static version with "AI Assistant" text
 - `addons/ai_coding_assistant/plugin_icon.svg` - Plugin icon (animated version)
 
 ### Additional Formats
-- `favicon.svg` - 32x32 favicon version for web use
-- `banner.svg` - 800x200 banner for social media and headers
-- `img/logo.svg` - Copy in img directory for documentation
+- `img/favicon.svg` - 32x32 favicon version for web use
+- `img/banner.svg` - 800x200 banner for social media and headers
 
 ## Logo Design Elements
 
@@ -48,9 +47,9 @@ This document outlines the proper usage of the AI Coding Assistant logo and bran
 - Inappropriate or offensive contexts
 
 ### Size Guidelines
-- **Minimum size**: 32x32 pixels (use favicon.svg)
-- **Recommended size**: 128x128 pixels (use logo_static.svg)
-- **Banner use**: Use banner.svg for wide formats
+- **Minimum size**: 32x32 pixels (use img/favicon.svg)
+- **Recommended size**: 128x128 pixels (use img/logo_static.svg)
+- **Banner use**: Use img/banner.svg for wide formats
 - **Always maintain aspect ratio**
 
 ### File Usage by Context
@@ -58,25 +57,25 @@ This document outlines the proper usage of the AI Coding Assistant logo and bran
 #### Documentation
 ```markdown
 <!-- For README headers -->
-<img src="logo_static.svg" alt="AI Coding Assistant Logo" width="128" height="128">
+<img src="img/logo_static.svg" alt="AI Coding Assistant Logo" width="128" height="128">
 
 <!-- For banners -->
-<img src="banner.svg" alt="AI Coding Assistant Banner" width="100%">
+<img src="img/banner.svg" alt="AI Coding Assistant Banner" width="100%">
 ```
 
 #### Web/HTML
 ```html
 <!-- Favicon -->
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/svg+xml" href="img/favicon.svg">
 
 <!-- Logo in content -->
-<img src="logo_static.svg" alt="AI Coding Assistant" width="64" height="64">
+<img src="img/logo_static.svg" alt="AI Coding Assistant" width="64" height="64">
 ```
 
 #### Godot Project
 ```ini
 # In project.godot
-config/icon="res://logo_static.svg"
+config/icon="res://img/logo_static.svg"
 ```
 
 ## Brand Colors
@@ -97,13 +96,13 @@ config/icon="res://logo_static.svg"
 
 ## Animation Guidelines
 
-### Animated Logo (logo.svg)
+### Animated Logo (img/logo.svg)
 - 6-second cycle duration
 - Text phases: "Grandpa EJ" → "Godot 4" → "AI Assistance"
 - Use for splash screens or interactive elements
 - Fallback to static version if animation not supported
 
-### Static Logo (logo_static.svg)
+### Static Logo (img/logo_static.svg)
 - Use for most documentation
 - Better for print materials
 - Faster loading for web
@@ -118,11 +117,11 @@ config/icon="res://logo_static.svg"
 - Supports animation
 
 ### When to Use Each File
-- **logo.svg**: Interactive elements, splash screens
-- **logo_static.svg**: Documentation, general use
-- **favicon.svg**: Browser icons, small sizes
-- **banner.svg**: Headers, social media
-- **plugin_icon.svg**: Godot plugin system
+- **img/logo.svg**: Interactive elements, splash screens
+- **img/logo_static.svg**: Documentation, general use
+- **img/favicon.svg**: Browser icons, small sizes
+- **img/banner.svg**: Headers, social media
+- **addons/ai_coding_assistant/plugin_icon.svg**: Godot plugin system
 
 ## Attribution
 

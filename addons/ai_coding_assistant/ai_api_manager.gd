@@ -3,13 +3,18 @@ extends RefCounted
 
 # API Configuration
 var api_key: String = ""
-var api_provider: String = "gemini"  # gemini, huggingface, cohere
+var api_provider: String = "gemini"  # gemini, huggingface, cohere, openai, anthropic, groq, ollama
 var current_model_index: int = 0
 var gemini_models: Array = []
+var provider_models: Dictionary = {}
 var base_urls = {
 	"gemini": "https://generativelanguage.googleapis.com/v1beta/models/",
 	"huggingface": "https://api-inference.huggingface.co/models/",
-	"cohere": "https://api.cohere.ai/v1/generate"
+	"cohere": "https://api.cohere.ai/v1/",
+	"openai": "https://api.openai.com/v1/",
+	"anthropic": "https://api.anthropic.com/v1/",
+	"groq": "https://api.groq.com/openai/v1/",
+	"ollama": "http://localhost:11434/api/"
 }
 
 signal response_received(response: String)
@@ -22,6 +27,7 @@ func _init():
 	gemini_models = [
 		"gemini-2.0-flash",
 		"gemini-1.5-flash",
+		"gemini-1.5-pro",
 		"gemini-1.0-pro",
 		"gemini-pro"
 	]
@@ -29,8 +35,15 @@ func _init():
 	base_urls = {
 		"gemini": "https://generativelanguage.googleapis.com/v1beta/models/",
 		"huggingface": "https://api-inference.huggingface.co/models/",
-		"cohere": "https://api.cohere.ai/v1/generate"
+		"cohere": "https://api.cohere.ai/v1/",
+		"openai": "https://api.openai.com/v1/",
+		"anthropic": "https://api.anthropic.com/v1/",
+		"groq": "https://api.groq.com/openai/v1/",
+		"ollama": "http://localhost:11434/api/"
 	}
+
+	# Initialize models for all providers
+	_init_provider_models()
 
 	current_model_index = 0
 	api_provider = "gemini"
@@ -41,14 +54,95 @@ func _init():
 
 	print("API Manager initialized with models: ", gemini_models)
 
+func _init_provider_models():
+	"""Initialize model configurations for all providers"""
+	provider_models = {
+		"gemini": [
+			"gemini-2.0-flash",
+			"gemini-1.5-flash",
+			"gemini-1.5-pro",
+			"gemini-1.0-pro",
+			"gemini-pro"
+		],
+		"huggingface": [
+			"microsoft/DialoGPT-medium",
+			"microsoft/CodeBERT-base",
+			"codeparrot/codeparrot-small",
+			"Salesforce/codegen-350M-mono",
+			"bigcode/starcoder",
+			"WizardLM/WizardCoder-15B-V1.0"
+		],
+		"cohere": [
+			"command-r-plus",
+			"command-r",
+			"command",
+			"command-light",
+			"command-nightly"
+		],
+		"openai": [
+			"gpt-4o",
+			"gpt-4o-mini",
+			"gpt-4-turbo",
+			"gpt-4",
+			"gpt-3.5-turbo"
+		],
+		"anthropic": [
+			"claude-3-5-sonnet-20241022",
+			"claude-3-5-haiku-20241022",
+			"claude-3-opus-20240229",
+			"claude-3-sonnet-20240229",
+			"claude-3-haiku-20240307"
+		],
+		"groq": [
+			"llama-3.1-70b-versatile",
+			"llama-3.1-8b-instant",
+			"mixtral-8x7b-32768",
+			"gemma2-9b-it",
+			"llama3-70b-8192"
+		],
+		"ollama": [
+			"llama3.2",
+			"codellama",
+			"mistral",
+			"phi3",
+			"qwen2.5-coder"
+		]
+	}
+
 func set_api_key(key: String):
 	api_key = key
 
 func set_provider(provider: String):
 	if provider in base_urls:
 		api_provider = provider
+		current_model_index = 0  # Reset model index when changing provider
+		print("Provider set to: ", provider)
 	else:
 		push_error("Unsupported API provider: " + provider)
+
+func get_available_models() -> Array:
+	"""Get available models for current provider"""
+	if api_provider in provider_models:
+		return provider_models[api_provider]
+	return []
+
+func get_current_model() -> String:
+	"""Get the currently selected model"""
+	var models = get_available_models()
+	if models.size() > 0 and current_model_index < models.size():
+		return models[current_model_index]
+	return ""
+
+func set_model_index(index: int):
+	"""Set the current model by index"""
+	var models = get_available_models()
+	if index >= 0 and index < models.size():
+		current_model_index = index
+		print("Model set to: ", get_current_model())
+
+func get_provider_list() -> Array:
+	"""Get list of available providers"""
+	return base_urls.keys()
 
 func send_chat_request(message: String, context: String = ""):
 	if api_key.is_empty():
@@ -62,6 +156,16 @@ func send_chat_request(message: String, context: String = ""):
 			_send_huggingface_request(message, context)
 		"cohere":
 			_send_cohere_request(message, context)
+		"openai":
+			_send_openai_request(message, context)
+		"anthropic":
+			_send_anthropic_request(message, context)
+		"groq":
+			_send_groq_request(message, context)
+		"ollama":
+			_send_ollama_request(message, context)
+		_:
+			error_occurred.emit("Unsupported provider: " + api_provider)
 
 func _send_gemini_request(message: String, context: String):
 	var headers = [
@@ -102,9 +206,11 @@ func _send_gemini_request(message: String, context: String):
 	http_request.request(full_url, headers, HTTPClient.METHOD_POST, json_body)
 
 func _send_huggingface_request(message: String, context: String):
-	# Using CodeT5+ for code generation
-	var model = "Salesforce/codet5p-770m-py"
-	var url = base_urls["huggingface"] + model
+	var current_model = get_current_model()
+	if current_model.is_empty():
+		current_model = "microsoft/DialoGPT-medium"  # Fallback model
+
+	var url = base_urls["huggingface"] + current_model
 
 	var headers = [
 		"Authorization: Bearer " + api_key,
@@ -113,16 +219,39 @@ func _send_huggingface_request(message: String, context: String):
 
 	var prompt = context + "\n\n" + message if not context.is_empty() else message
 
-	var body = {
-		"inputs": prompt,
-		"parameters": {
-			"max_length": 512,
-			"temperature": 0.7,
-			"do_sample": true
+	# Different request format for different model types
+	var body = {}
+	if "DialoGPT" in current_model or "CodeBERT" in current_model:
+		# Chat/conversation models
+		body = {
+			"inputs": {
+				"past_user_inputs": [],
+				"generated_responses": [],
+				"text": prompt
+			},
+			"parameters": {
+				"max_length": 512,
+				"temperature": 0.7,
+				"do_sample": true,
+				"top_p": 0.9
+			}
 		}
-	}
+	else:
+		# Code generation models
+		body = {
+			"inputs": prompt,
+			"parameters": {
+				"max_new_tokens": 512,
+				"temperature": 0.7,
+				"do_sample": true,
+				"top_p": 0.9,
+				"return_full_text": false
+			}
+		}
 
 	var json_body = JSON.stringify(body)
+	print("Hugging Face request to: ", url)
+	print("Using model: ", current_model)
 	http_request.request(url, headers, HTTPClient.METHOD_POST, json_body)
 
 func _send_cohere_request(message: String, context: String):
@@ -141,6 +270,110 @@ func _send_cohere_request(message: String, context: String):
 	}
 
 	var json_body = JSON.stringify(body)
+	http_request.request(url, headers, HTTPClient.METHOD_POST, json_body)
+
+func _send_openai_request(message: String, context: String):
+	var current_model = get_current_model()
+	if current_model.is_empty():
+		current_model = "gpt-3.5-turbo"
+
+	var url = base_urls["openai"] + "chat/completions"
+	var headers = [
+		"Authorization: Bearer " + api_key,
+		"Content-Type: application/json"
+	]
+
+	var messages = []
+	if not context.is_empty():
+		messages.append({"role": "system", "content": context})
+	messages.append({"role": "user", "content": message})
+
+	var body = {
+		"model": current_model,
+		"messages": messages,
+		"max_tokens": 2048,
+		"temperature": 0.7
+	}
+
+	var json_body = JSON.stringify(body)
+	print("OpenAI request to: ", url)
+	http_request.request(url, headers, HTTPClient.METHOD_POST, json_body)
+
+func _send_anthropic_request(message: String, context: String):
+	var current_model = get_current_model()
+	if current_model.is_empty():
+		current_model = "claude-3-haiku-20240307"
+
+	var url = base_urls["anthropic"] + "messages"
+	var headers = [
+		"x-api-key: " + api_key,
+		"Content-Type: application/json",
+		"anthropic-version: 2023-06-01"
+	]
+
+	var messages = []
+	if not context.is_empty():
+		messages.append({"role": "user", "content": context + "\n\n" + message})
+	else:
+		messages.append({"role": "user", "content": message})
+
+	var body = {
+		"model": current_model,
+		"max_tokens": 2048,
+		"messages": messages
+	}
+
+	var json_body = JSON.stringify(body)
+	print("Anthropic request to: ", url)
+	http_request.request(url, headers, HTTPClient.METHOD_POST, json_body)
+
+func _send_groq_request(message: String, context: String):
+	var current_model = get_current_model()
+	if current_model.is_empty():
+		current_model = "llama-3.1-8b-instant"
+
+	var url = base_urls["groq"] + "chat/completions"
+	var headers = [
+		"Authorization: Bearer " + api_key,
+		"Content-Type: application/json"
+	]
+
+	var messages = []
+	if not context.is_empty():
+		messages.append({"role": "system", "content": context})
+	messages.append({"role": "user", "content": message})
+
+	var body = {
+		"model": current_model,
+		"messages": messages,
+		"max_tokens": 2048,
+		"temperature": 0.7
+	}
+
+	var json_body = JSON.stringify(body)
+	print("Groq request to: ", url)
+	http_request.request(url, headers, HTTPClient.METHOD_POST, json_body)
+
+func _send_ollama_request(message: String, context: String):
+	var current_model = get_current_model()
+	if current_model.is_empty():
+		current_model = "llama3.2"
+
+	var url = base_urls["ollama"] + "generate"
+	var headers = [
+		"Content-Type: application/json"
+	]
+
+	var prompt = context + "\n\n" + message if not context.is_empty() else message
+
+	var body = {
+		"model": current_model,
+		"prompt": prompt,
+		"stream": false
+	}
+
+	var json_body = JSON.stringify(body)
+	print("Ollama request to: ", url)
 	http_request.request(base_urls["cohere"], headers, HTTPClient.METHOD_POST, json_body)
 
 func _on_request_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray):
@@ -184,10 +417,35 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 					extracted_text = candidate["content"]["parts"][0]["text"]
 		"huggingface":
 			if response_data is Array and response_data.size() > 0:
-				extracted_text = response_data[0]["generated_text"]
+				# Handle different HF response formats
+				var first_response = response_data[0]
+				if "generated_text" in first_response:
+					extracted_text = first_response["generated_text"]
+				elif "conversation" in first_response:
+					extracted_text = first_response["conversation"]["generated_responses"][-1]
+				elif typeof(first_response) == TYPE_STRING:
+					extracted_text = first_response
+			elif "generated_text" in response_data:
+				extracted_text = response_data["generated_text"]
 		"cohere":
 			if "generations" in response_data and response_data["generations"].size() > 0:
 				extracted_text = response_data["generations"][0]["text"]
+		"openai":
+			if "choices" in response_data and response_data["choices"].size() > 0:
+				var choice = response_data["choices"][0]
+				if "message" in choice and "content" in choice["message"]:
+					extracted_text = choice["message"]["content"]
+		"anthropic":
+			if "content" in response_data and response_data["content"].size() > 0:
+				extracted_text = response_data["content"][0]["text"]
+		"groq":
+			if "choices" in response_data and response_data["choices"].size() > 0:
+				var choice = response_data["choices"][0]
+				if "message" in choice and "content" in choice["message"]:
+					extracted_text = choice["message"]["content"]
+		"ollama":
+			if "response" in response_data:
+				extracted_text = response_data["response"]
 
 	if extracted_text.is_empty():
 		error_occurred.emit("No valid response received from API")
