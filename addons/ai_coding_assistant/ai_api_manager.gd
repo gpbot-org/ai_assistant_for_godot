@@ -22,6 +22,7 @@ signal response_received(response: String)
 signal error_occurred(error: String)
 
 var http_request: HTTPRequest
+var ollama_handler: AIOllama
 
 func _init():
 	# Always initialize arrays to ensure they're never null
@@ -55,6 +56,14 @@ func _ready():
 	http_request = HTTPRequest.new()
 	add_child(http_request)
 	http_request.request_completed.connect(_on_request_completed)
+
+	# Initialize dedicated Ollama handler
+	ollama_handler = preload("res://addons/ai_coding_assistant/ai_ollama.gd").new()
+	add_child(ollama_handler)
+	ollama_handler.response_received.connect(_on_ollama_response)
+	ollama_handler.error_occurred.connect(_on_ollama_error)
+	ollama_handler.model_list_updated.connect(_on_ollama_models_updated)
+
 	print("API Manager ready with models: ", gemini_models)
 
 func _init_provider_models():
@@ -105,10 +114,19 @@ func _init_provider_models():
 		],
 		"ollama": [
 			"llama3.2",
-			"codellama",
-			"mistral",
-			"phi3",
-			"qwen2.5-coder"
+			"llama3.2:1b",
+			"llama3.2:3b",
+			"qwen2.5-coder",
+			"qwen2.5-coder:1.5b",
+			"codellama:7b",
+			"codellama:13b",
+			"mistral:7b",
+			"phi3:mini",
+			"phi3:medium",
+			"gemma2:2b",
+			"gemma2:9b",
+			"deepseek-coder:6.7b",
+			"starcoder2:3b"
 		]
 	}
 
@@ -359,26 +377,42 @@ func _send_groq_request(message: String, context: String):
 	http_request.request(url, headers, HTTPClient.METHOD_POST, json_body)
 
 func _send_ollama_request(message: String, context: String):
+	"""Send request using dedicated Ollama handler"""
 	var current_model = get_current_model()
 	if current_model.is_empty():
 		current_model = "llama3.2"
 
-	var url = base_urls["ollama"] + "generate"
-	var headers = [
-		"Content-Type: application/json"
-	]
+	# Set model and context in Ollama handler
+	ollama_handler.set_model(current_model)
+	if not context.is_empty():
+		ollama_handler.set_system_prompt(context)
 
-	var prompt = context + "\n\n" + message if not context.is_empty() else message
+	# Send message using dedicated handler
+	ollama_handler.send_chat_message(message, not context.is_empty())
 
-	var body = {
-		"model": current_model,
-		"prompt": prompt,
-		"stream": false
-	}
+func _on_ollama_response(response: String):
+	"""Handle response from dedicated Ollama handler"""
+	print("Ollama response received: ", response.substr(0, 100) + "...")
+	response_received.emit(response)
 
-	var json_body = JSON.stringify(body)
-	print("Ollama request to: ", url)
-	http_request.request(base_urls["cohere"], headers, HTTPClient.METHOD_POST, json_body)
+func _on_ollama_error(error: String):
+	"""Handle error from dedicated Ollama handler"""
+	print("Ollama error: ", error)
+	error_occurred.emit(error)
+
+func _on_ollama_models_updated(models: Array):
+	"""Handle model list update from Ollama"""
+	print("Ollama models updated: ", models.size(), " models available")
+	# Update provider_models with actual available models
+	var model_names = []
+	for model in models:
+		model_names.append(model.get("name", "unknown"))
+	if model_names.size() > 0:
+		provider_models["ollama"] = model_names
+
+func get_ollama_handler() -> AIOllama:
+	"""Get direct access to Ollama handler for advanced features"""
+	return ollama_handler
 
 func _on_request_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray):
 	print("Request completed - Result: ", result, " Response code: ", response_code)

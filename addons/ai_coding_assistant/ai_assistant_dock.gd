@@ -8,6 +8,12 @@ var send_button: Button
 var provider_option: OptionButton
 var model_option: OptionButton
 var api_key_field: LineEdit
+var ollama_controls: VBoxContainer
+var ollama_url_field: LineEdit
+var ollama_streaming_check: CheckBox
+var ollama_temperature_slider: HSlider
+var ollama_pull_button: Button
+var ollama_quick_actions: Array = []
 var code_output: TextEdit
 var apply_button: Button
 var explain_button: Button
@@ -193,6 +199,9 @@ func _create_settings_section(parent: Container):
 
 	# Initialize model dropdown
 	_update_model_dropdown()
+
+	# Ollama-specific controls (initially hidden)
+	_create_ollama_controls()
 
 	settings_container.add_child(settings_content)
 	parent.add_child(settings_container)
@@ -459,6 +468,9 @@ func _create_quick_actions_section(parent: Container):
 	quick_content.add_child(gen_save_btn)
 	quick_content.add_child(gen_audio_btn)
 	quick_content.add_child(gen_state_btn)
+
+	# Ollama-specific quick actions (initially hidden)
+	_create_ollama_quick_actions()
 
 	quick_actions_container.add_child(quick_content)
 	parent.add_child(quick_actions_container)
@@ -818,6 +830,17 @@ func _update_provider_info(provider: String):
 			api_key_field.placeholder_text = "Enter your " + provider.capitalize() + " API key"
 			api_key_field.editable = true
 
+	# Show/hide Ollama-specific controls
+	if ollama_controls:
+		ollama_controls.visible = (provider == "ollama")
+		if provider == "ollama":
+			_add_to_chat("System", "🏠 Ollama selected - Advanced local AI features available", Color.CYAN)
+
+	# Show/hide Ollama quick actions
+	for action in ollama_quick_actions:
+		if action:
+			action.visible = (provider == "ollama")
+
 func _update_model_dropdown():
 	"""Update model dropdown based on current provider"""
 	if not model_option:
@@ -834,6 +857,192 @@ func _update_model_dropdown():
 func _on_model_changed(index: int):
 	"""Handle model selection change"""
 	api_manager.set_model_index(index)
+
+func _create_ollama_controls():
+	"""Create Ollama-specific controls"""
+	ollama_controls = VBoxContainer.new()
+	ollama_controls.visible = false  # Hidden by default
+
+	# Ollama server URL
+	var url_hbox = HBoxContainer.new()
+	var url_label = Label.new()
+	url_label.text = "Server URL:"
+	url_label.custom_minimum_size = Vector2(80, 0)
+	ollama_url_field = LineEdit.new()
+	ollama_url_field.text = "http://localhost:11434"
+	ollama_url_field.placeholder_text = "Ollama server URL"
+	ollama_url_field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ollama_url_field.text_changed.connect(_on_ollama_url_changed)
+	url_hbox.add_child(url_label)
+	url_hbox.add_child(ollama_url_field)
+	ollama_controls.add_child(url_hbox)
+
+	# Streaming toggle
+	ollama_streaming_check = CheckBox.new()
+	ollama_streaming_check.text = "Enable Streaming"
+	ollama_streaming_check.toggled.connect(_on_ollama_streaming_toggled)
+	ollama_controls.add_child(ollama_streaming_check)
+
+	# Temperature slider
+	var temp_hbox = HBoxContainer.new()
+	var temp_label = Label.new()
+	temp_label.text = "Temperature:"
+	temp_label.custom_minimum_size = Vector2(80, 0)
+	ollama_temperature_slider = HSlider.new()
+	ollama_temperature_slider.min_value = 0.0
+	ollama_temperature_slider.max_value = 1.0
+	ollama_temperature_slider.step = 0.1
+	ollama_temperature_slider.value = 0.7
+	ollama_temperature_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ollama_temperature_slider.value_changed.connect(_on_ollama_temperature_changed)
+	var temp_value_label = Label.new()
+	temp_value_label.text = "0.7"
+	temp_value_label.custom_minimum_size = Vector2(30, 0)
+	ollama_temperature_slider.value_changed.connect(func(value): temp_value_label.text = "%.1f" % value)
+	temp_hbox.add_child(temp_label)
+	temp_hbox.add_child(ollama_temperature_slider)
+	temp_hbox.add_child(temp_value_label)
+	ollama_controls.add_child(temp_hbox)
+
+	# Model management
+	var model_mgmt_hbox = HBoxContainer.new()
+	ollama_pull_button = Button.new()
+	ollama_pull_button.text = "Pull Model"
+	ollama_pull_button.pressed.connect(_on_ollama_pull_model)
+	var refresh_button = Button.new()
+	refresh_button.text = "Refresh Models"
+	refresh_button.pressed.connect(_on_ollama_refresh_models)
+	model_mgmt_hbox.add_child(ollama_pull_button)
+	model_mgmt_hbox.add_child(refresh_button)
+	ollama_controls.add_child(model_mgmt_hbox)
+
+	# Add to settings content
+	settings_content.add_child(ollama_controls)
+
+func _on_ollama_url_changed(new_url: String):
+	"""Handle Ollama URL change"""
+	var ollama_handler = api_manager.get_ollama_handler()
+	if ollama_handler:
+		ollama_handler.set_base_url(new_url)
+
+func _on_ollama_streaming_toggled(enabled: bool):
+	"""Handle streaming toggle"""
+	var ollama_handler = api_manager.get_ollama_handler()
+	if ollama_handler:
+		ollama_handler.enable_streaming(enabled)
+
+func _on_ollama_temperature_changed(value: float):
+	"""Handle temperature change"""
+	var ollama_handler = api_manager.get_ollama_handler()
+	if ollama_handler:
+		ollama_handler.set_temperature(value)
+
+func _on_ollama_pull_model():
+	"""Handle model pull request"""
+	var model_name = model_option.get_item_text(model_option.selected) if model_option.selected >= 0 else "llama3.2"
+	var ollama_handler = api_manager.get_ollama_handler()
+	if ollama_handler:
+		_add_to_chat("System", "Pulling model: " + model_name + " (this may take a while...)", Color.YELLOW)
+		ollama_handler.pull_model(model_name)
+
+func _on_ollama_refresh_models():
+	"""Handle model list refresh"""
+	var ollama_handler = api_manager.get_ollama_handler()
+	if ollama_handler:
+		_add_to_chat("System", "Refreshing Ollama model list...", Color.YELLOW)
+		ollama_handler.refresh_model_list()
+
+func _create_ollama_quick_actions():
+	"""Create Ollama-specific quick action buttons"""
+	var separator = HSeparator.new()
+	separator.visible = false
+	quick_content.add_child(separator)
+
+	var ollama_label = Label.new()
+	ollama_label.text = "🏠 Ollama Features:"
+	ollama_label.visible = false
+	quick_content.add_child(ollama_label)
+
+	var explain_btn = Button.new()
+	explain_btn.text = "🔍 Explain Code"
+	explain_btn.pressed.connect(_on_ollama_explain_code)
+	explain_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	explain_btn.visible = false
+	quick_content.add_child(explain_btn)
+
+	var improve_btn = Button.new()
+	improve_btn.text = "⚡ Improve Code"
+	improve_btn.pressed.connect(_on_ollama_improve_code)
+	improve_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	improve_btn.visible = false
+	quick_content.add_child(improve_btn)
+
+	var code_gen_btn = Button.new()
+	code_gen_btn.text = "🎯 Generate Code"
+	code_gen_btn.pressed.connect(_on_ollama_generate_code)
+	code_gen_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	code_gen_btn.visible = false
+	quick_content.add_child(code_gen_btn)
+
+	# Store references for visibility control
+	ollama_quick_actions = [separator, ollama_label, explain_btn, improve_btn, code_gen_btn]
+
+func _on_ollama_explain_code():
+	"""Explain selected code using Ollama"""
+	var selected_text = _get_selected_text_from_editor()
+	if selected_text.is_empty():
+		_add_to_chat("System", "Please select some code to explain", Color.ORANGE)
+		return
+
+	var ollama_handler = api_manager.get_ollama_handler()
+	if ollama_handler:
+		_add_to_chat("User", "Explain this code: " + selected_text.substr(0, 100) + "...", Color.WHITE)
+		ollama_handler.explain_code(selected_text)
+
+func _on_ollama_improve_code():
+	"""Improve selected code using Ollama"""
+	var selected_text = _get_selected_text_from_editor()
+	if selected_text.is_empty():
+		_add_to_chat("System", "Please select some code to improve", Color.ORANGE)
+		return
+
+	var ollama_handler = api_manager.get_ollama_handler()
+	if ollama_handler:
+		_add_to_chat("User", "Improve this code: " + selected_text.substr(0, 100) + "...", Color.WHITE)
+		ollama_handler.improve_code(selected_text)
+
+func _on_ollama_generate_code():
+	"""Generate code using Ollama with specialized models"""
+	var prompt = user_input.text.strip_edges()
+	if prompt.is_empty():
+		_add_to_chat("System", "Please enter a code generation request", Color.ORANGE)
+		return
+
+	var ollama_handler = api_manager.get_ollama_handler()
+	if ollama_handler:
+		_add_to_chat("User", "Generate: " + prompt, Color.WHITE)
+		ollama_handler.generate_code(prompt, "gdscript")
+		user_input.clear()
+
+func _get_selected_text_from_editor() -> String:
+	"""Get selected text from the current script editor"""
+	var editor_interface = EditorInterface.get_singleton()
+	if not editor_interface:
+		return ""
+
+	var script_editor = editor_interface.get_script_editor()
+	if not script_editor:
+		return ""
+
+	var current_editor = script_editor.get_current_editor()
+	if not current_editor:
+		return ""
+
+	var code_edit = current_editor.get_base_editor()
+	if not code_edit:
+		return ""
+
+	return code_edit.get_selected_text()
 
 func _on_api_key_changed(new_text: String):
 	api_manager.set_api_key(new_text)
