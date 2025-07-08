@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="200" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI Coding Assistant Banner">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#478CBF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2E5C8A;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <rect width="800" height="200" fill="url(#bgGradient)"/>
+  
+  <!-- Logo on the left -->
+  <g transform="translate(100, 36)">
+    <!-- Outer circle -->
+    <circle cx="64" cy="64" r="62" fill="#FFFFFF" stroke="#2E5C8A" stroke-width="4"/>
+    
+    <!-- Robot face -->
+    <rect x="32" y="40" width="64" height="48" rx="12" ry="12" fill="#478CBF" stroke="#2E5C8A" stroke-width="4"/>
+    <!-- Eyes -->
+    <circle cx="48" cy="64" r="8" fill="#FFFFFF"/>
+    <circle cx="80" cy="64" r="8" fill="#FFFFFF"/>
+    <!-- Smile -->
+    <path d="M50 84 L78 84" stroke="#2E5C8A" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- AI Spark -->
+    <g transform="translate(64, 48)">
+      <circle cx="0" cy="0" r="5" fill="#FFA500"/>
+      <line x1="0" y1="-5" x2="0" y2="-20" stroke="#FFA500" stroke-width="3"/>
+      <line x1="0" y1="-20" x2="8" y2="-28" stroke="#FFA500" stroke-width="3"/>
+      <line x1="0" y1="-20" x2="-8" y2="-28" stroke="#FFA500" stroke-width="3"/>
+      <circle cx="8" cy="-28" r="3" fill="#FFA500"/>
+      <circle cx="-8" cy="-28" r="3" fill="#FFA500"/>
+    </g>
+  </g>
+  
+  <!-- Title text -->
+  <text x="300" y="80" font-family="Segoe UI, Arial, sans-serif" font-size="36" fill="#FFFFFF" font-weight="700">
+    AI Coding Assistant
+  </text>
+  
+  <!-- Subtitle -->
+  <text x="300" y="110" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#E0E0E0" font-weight="400">
+    Intelligent coding companion for Godot 4
+  </text>
+  
+  <!-- Features -->
+  <text x="300" y="140" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#CCCCCC" font-weight="400">
+    🤖 AI Chat • 🎯 Code Generation • 📝 Templates • 🔧 Multi-Provider Support
+  </text>
+  
+  <!-- Version badge -->
+  <rect x="300" y="155" width="80" height="25" rx="12" ry="12" fill="#FFA500"/>
+  <text x="340" y="172" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="600">
+    v2.0.0
+  </text>
+</svg>

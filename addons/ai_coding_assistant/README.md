@@ -1,6 +1,10 @@
-# AI Coding Assistant for Godot
+<div align="center">
+  <img src="plugin_icon.svg" alt="AI Coding Assistant Logo" width="128" height="128">
 
-A powerful AI-powered coding assistant plugin for Godot 4.x that helps you write better code faster.
+  # AI Coding Assistant for Godot
+
+  A powerful AI-powered coding assistant plugin for Godot 4.x that helps you write better code faster.
+</div>
 
 ## ✨ Features
 
