@@ -43,7 +43,7 @@ var setup_guide: Window
 func _init():
 	name = "AI Assistant"
 	# Enhanced flexible sizing for better screen adaptation
-	set_custom_minimum_size(Vector2(200, 250))  # Reduced minimum for smaller screens
+	custom_minimum_size = Vector2(200, 250)  # Reduced minimum for smaller screens
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 
@@ -145,7 +145,7 @@ func _create_settings_section(parent: Container):
 	var provider_hbox = HBoxContainer.new()
 	var provider_label = Label.new()
 	provider_label.text = "Provider:"
-	provider_label.set_custom_minimum_size(Vector2(60, 0))
+	provider_label.custom_minimum_size = Vector2(60, 0)
 	provider_option = OptionButton.new()
 	provider_option.add_item("Gemini (Free)")
 	provider_option.add_item("Hugging Face")
@@ -161,7 +161,7 @@ func _create_settings_section(parent: Container):
 	var key_hbox = HBoxContainer.new()
 	var key_label = Label.new()
 	key_label.text = "API Key:"
-	key_label.set_custom_minimum_size(Vector2(60, 0))
+	key_label.custom_minimum_size = Vector2(60, 0)
 	api_key_field = LineEdit.new()
 	api_key_field.placeholder_text = "Enter your API key"
 	api_key_field.secret = true
@@ -209,7 +209,7 @@ func _create_chat_section(parent: Container):
 	var chat_scroll = ScrollContainer.new()
 	chat_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	chat_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	chat_scroll.set_custom_minimum_size(Vector2(0, 150))  # Default minimum height
+	chat_scroll.custom_minimum_size = Vector2(0, 150)  # Default minimum height
 
 	# Enable scrolling
 	chat_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -262,7 +262,7 @@ func _create_chat_section(parent: Container):
 
 	send_button = Button.new()
 	send_button.text = "Send"
-	send_button.set_custom_minimum_size(Vector2(60, 0))
+	send_button.custom_minimum_size = Vector2(60, 0)
 	send_button.pressed.connect(_on_send_pressed)
 
 	input_hbox.add_child(input_field)
@@ -303,7 +303,7 @@ func _create_code_section(parent: Container):
 	code_save_button = Button.new()
 	code_save_button.text = "💾"
 	code_save_button.tooltip_text = "Save code to file"
-	code_save_button.set_custom_minimum_size(Vector2(25, 25))
+	code_save_button.custom_minimum_size = Vector2(25, 25)
 	code_save_button.pressed.connect(_on_save_code)
 
 	code_header.add_child(code_label)
@@ -316,7 +316,7 @@ func _create_code_section(parent: Container):
 	var code_scroll = ScrollContainer.new()
 	code_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	code_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	code_scroll.set_custom_minimum_size(Vector2(0, 120))  # Default minimum height
+	code_scroll.custom_minimum_size = Vector2(0, 120)  # Default minimum height
 
 	# Enable scrolling for code
 	code_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
@@ -385,7 +385,7 @@ func _create_quick_actions_section(parent: Container):
 	var quick_header = HBoxContainer.new()
 	var collapse_button = Button.new()
 	collapse_button.text = "▼" if not quick_actions_collapsed else "▶"
-	collapse_button.set_custom_minimum_size(Vector2(20, 20))
+	collapse_button.custom_minimum_size = Vector2(20, 20)
 	collapse_button.pressed.connect(_toggle_quick_actions_collapse)
 
 	var quick_label = Label.new()
@@ -511,7 +511,7 @@ func _apply_responsive_design():
 		# Find the scroll container and set its minimum size
 		for child in chat_container.get_children():
 			if child is ScrollContainer:
-				child.set_custom_minimum_size(Vector2(0, min_chat_height))
+				child.custom_minimum_size = Vector2(0, min_chat_height)
 				break
 
 	if code_container:
@@ -519,16 +519,16 @@ func _apply_responsive_design():
 		# Find the scroll container and set its minimum size
 		for child in code_container.get_children():
 			if child is ScrollContainer:
-				child.set_custom_minimum_size(Vector2(0, min_code_height))
+				child.custom_minimum_size = Vector2(0, min_code_height)
 				break
 
 	# Adjust dock minimum size based on screen
 	if screen_width < 400:
-		set_custom_minimum_size(Vector2(180, 200))  # Very small screens
+		custom_minimum_size = Vector2(180, 200)  # Very small screens
 	elif screen_width < 800:
-		set_custom_minimum_size(Vector2(200, 250))  # Small screens
+		custom_minimum_size = Vector2(200, 250)  # Small screens
 	else:
-		set_custom_minimum_size(Vector2(250, 300))  # Normal screens
+		custom_minimum_size = Vector2(250, 300)  # Normal screens
 
 	# Auto-collapse sections on very small screens
 	if screen_height < 500:
