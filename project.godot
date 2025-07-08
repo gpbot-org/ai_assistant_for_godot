@@ -13,6 +13,7 @@ config_version=5
 config/name="AI Coding Assistant Plugin Demo"
 config/description="Demo project for the AI Coding Assistant plugin"
 config/features=PackedStringArray("4.4")
+config/icon="res://logo_static.svg"
 
 [editor_plugins]
 

@@ -59,6 +59,10 @@ func _init():
 	api_manager.response_received.connect(_on_response_received)
 	api_manager.error_occurred.connect(_on_error_occurred)
 
+	# Load utility classes
+	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var AIUtils = load("res://addons/ai_coding_assistant/ai_utils.gd")
+
 	_setup_ui()
 	_load_settings()
 	_setup_keyboard_shortcuts()
@@ -401,24 +405,42 @@ func _create_quick_actions_section(parent: Container):
 	var quick_content = VBoxContainer.new()
 	quick_content.visible = not quick_actions_collapsed
 
-	var gen_class_btn = Button.new()
-	gen_class_btn.text = "Generate Class Template"
-	gen_class_btn.pressed.connect(_on_generate_class)
-	gen_class_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var gen_player_btn = Button.new()
+	gen_player_btn.text = "🏃 Player Movement"
+	gen_player_btn.pressed.connect(_on_generate_class)
+	gen_player_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var gen_singleton_btn = Button.new()
-	gen_singleton_btn.text = "Generate Singleton"
+	gen_singleton_btn.text = "⚙️ Singleton"
 	gen_singleton_btn.pressed.connect(_on_generate_singleton)
 	gen_singleton_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var gen_ui_btn = Button.new()
-	gen_ui_btn.text = "Generate UI Controller"
+	gen_ui_btn.text = "🖥️ UI Controller"
 	gen_ui_btn.pressed.connect(_on_generate_ui)
 	gen_ui_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
-	quick_content.add_child(gen_class_btn)
+	var gen_save_btn = Button.new()
+	gen_save_btn.text = "💾 Save System"
+	gen_save_btn.pressed.connect(_on_generate_save_system)
+	gen_save_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var gen_audio_btn = Button.new()
+	gen_audio_btn.text = "🔊 Audio Manager"
+	gen_audio_btn.pressed.connect(_on_generate_audio_manager)
+	gen_audio_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var gen_state_btn = Button.new()
+	gen_state_btn.text = "🔄 State Machine"
+	gen_state_btn.pressed.connect(_on_generate_state_machine)
+	gen_state_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	quick_content.add_child(gen_player_btn)
 	quick_content.add_child(gen_singleton_btn)
 	quick_content.add_child(gen_ui_btn)
+	quick_content.add_child(gen_save_btn)
+	quick_content.add_child(gen_audio_btn)
+	quick_content.add_child(gen_state_btn)
 
 	quick_actions_container.add_child(quick_content)
 	parent.add_child(quick_actions_container)
@@ -773,16 +795,70 @@ func _quick_generate(prompt: String):
 	api_manager.generate_code(prompt)
 
 func _on_generate_class():
-	_add_to_chat("System", "Testing Quick Action: Generate Class Template", Color.YELLOW)
-	_quick_generate("Create a basic GDScript class template with common methods")
+	_add_to_chat("System", "Generating Player Movement Template", Color.YELLOW)
+	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var template = CodeTemplates.get_template("player_movement")
+	if template != "":
+		code_output.text = template
+		apply_button.disabled = false
+		_add_to_chat("AI", "Generated player movement template with physics and controls", Color.GREEN)
+	else:
+		_quick_generate("Create a 2D player movement script with physics, jumping, and WASD controls")
 
 func _on_generate_singleton():
-	_add_to_chat("System", "Testing Quick Action: Generate Singleton", Color.YELLOW)
-	_quick_generate("Create a GDScript singleton/autoload script template")
+	_add_to_chat("System", "Generating Singleton Template", Color.YELLOW)
+	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var template = CodeTemplates.get_template("singleton")
+	if template != "":
+		code_output.text = template
+		apply_button.disabled = false
+		_add_to_chat("AI", "Generated singleton/autoload template with game state management", Color.GREEN)
+	else:
+		_quick_generate("Create a GDScript singleton/autoload script template")
 
 func _on_generate_ui():
-	_add_to_chat("System", "Testing Quick Action: Generate UI Controller", Color.YELLOW)
-	_quick_generate("Create a GDScript UI controller with common UI interaction methods")
+	_add_to_chat("System", "Generating UI Controller Template", Color.YELLOW)
+	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var template = CodeTemplates.get_template("ui_controller")
+	if template != "":
+		code_output.text = template
+		apply_button.disabled = false
+		_add_to_chat("AI", "Generated UI controller template with menu management", Color.GREEN)
+	else:
+		_quick_generate("Create a GDScript UI controller with common UI interaction methods")
+
+func _on_generate_save_system():
+	_add_to_chat("System", "Generating Save System Template", Color.YELLOW)
+	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var template = CodeTemplates.get_template("save_system")
+	if template != "":
+		code_output.text = template
+		apply_button.disabled = false
+		_add_to_chat("AI", "Generated save/load system template with JSON support", Color.GREEN)
+	else:
+		_quick_generate("Create a save and load system for Godot using JSON files")
+
+func _on_generate_audio_manager():
+	_add_to_chat("System", "Generating Audio Manager Template", Color.YELLOW)
+	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var template = CodeTemplates.get_template("audio_manager")
+	if template != "":
+		code_output.text = template
+		apply_button.disabled = false
+		_add_to_chat("AI", "Generated audio manager template with music and SFX control", Color.GREEN)
+	else:
+		_quick_generate("Create an audio manager for Godot with music and sound effects control")
+
+func _on_generate_state_machine():
+	_add_to_chat("System", "Generating State Machine Template", Color.YELLOW)
+	var CodeTemplates = load("res://addons/ai_coding_assistant/code_templates.gd")
+	var template = CodeTemplates.get_template("state_machine")
+	if template != "":
+		code_output.text = template
+		apply_button.disabled = false
+		_add_to_chat("AI", "Generated state machine template with flexible state management", Color.GREEN)
+	else:
+		_quick_generate("Create a generic state machine implementation for Godot")
 
 func _on_response_received(response: String):
 	send_button.disabled = false

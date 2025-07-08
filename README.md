@@ -1,10 +1,18 @@
-# 🤖 AI Coding Assistant for Godot 4 [v2.0.0] [Still on DEV MODE]
+<div align="center">
+  <img src="logo_static.svg" alt="AI Coding Assistant Logo" width="128" height="128">
 
-[![Godot 4](https://img.shields.io/badge/Godot-4.x-blue.svg)](https://godotengine.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-2.0.0-green.svg)](https://github.com/Godot4-Addons/ai_assistant_for_godot/releases)
+  # 🤖 AI Coding Assistant for Godot 4 [v2.0.0] [Still on DEV MODE]
+
+  [![Godot 4](https://img.shields.io/badge/Godot-4.x-blue.svg)](https://godotengine.org/)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![Version](https://img.shields.io/badge/Version-2.0.0-green.svg)](https://github.com/Godot4-Addons/ai_assistant_for_godot/releases)
+</div>
 
 A **professional-grade AI coding assistant** plugin for Godot 4 that transforms your development workflow with advanced features, responsive design, and enhanced markdown highlighting.
+
+<div align="center">
+  <img src="banner.svg" alt="AI Coding Assistant Banner" width="100%">
+</div>
 
 ![AI Assistant Demo](https://github.com/Godot4-Addons/ai_assistant_for_godot/blob/main/img/image.png)
 
