@@ -2068,7 +2068,7 @@ func _apply_ui_state(splitter_offset: int):
 		chat_word_wrap_button.tooltip_text = "Word wrap: " + ("ON" if chat_word_wrap_enabled else "OFF")
 
 	if code_output:
-		code_output.gutters_draw_line_numbers = code_line_numbers_enabled  # Correct property name for Godot 4.x
+		code_output.set_gutter_draw(0, code_line_numbers_enabled)  # Correct method for Godot 4.4
 	if code_line_numbers_button:
 		code_line_numbers_button.text = "#" if code_line_numbers_enabled else "∅"
 		code_line_numbers_button.tooltip_text = "Line numbers: " + ("ON" if code_line_numbers_enabled else "OFF")

@@ -77,12 +77,12 @@ func _init_provider_models():
 			"gemini-pro"
 		],
 		"huggingface": [
-			"microsoft/DialoGPT-medium",
 			"microsoft/CodeBERT-base",
 			"codeparrot/codeparrot-small",
 			"Salesforce/codegen-350M-mono",
 			"bigcode/starcoder",
-			"WizardLM/WizardCoder-15B-V1.0"
+			"microsoft/codebert-base-mlm",
+			"huggingface/CodeBERTa-small-v1"
 		],
 		"cohere": [
 			"command-r-plus",
@@ -230,7 +230,7 @@ func _send_gemini_request(message: String, context: String):
 func _send_huggingface_request(message: String, context: String):
 	var current_model = get_current_model()
 	if current_model.is_empty():
-		current_model = "microsoft/DialoGPT-medium"  # Fallback model
+		current_model = "microsoft/CodeBERT-base"  # Fallback model
 
 	var url = base_urls["huggingface"] + current_model
 
@@ -243,7 +243,7 @@ func _send_huggingface_request(message: String, context: String):
 
 	# Different request format for different model types
 	var body = {}
-	if "DialoGPT" in current_model or "CodeBERT" in current_model:
+	if "CodeBERT" in current_model or "codebert" in current_model:
 		# Chat/conversation models
 		body = {
 			"inputs": {
